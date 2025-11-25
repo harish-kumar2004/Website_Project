@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Catalog - LeSuccess Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+         body {
+      font-family: 'Inter', sans-serif;
+      /* ADDED STYLE FOR 3D BACKGROUND */
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+
+    /* --- STYLES FOR 3D BACKGROUND --- */
+    #global-3d-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Position canvas behind the main content wrapper */
+    }
+
+    .page-wrapper {
+        position: relative;
+        z-index: 10; /* Elevate content above the canvas */
+        width: 100%;
+    }
+
+
+    
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        .animate-fadeInUp {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Menu Animation Styles from index.html --- */
+        #nav-menu {
+            transform-origin: top;
+            transform: scaleY(0.94) translateY(-10px);
+            opacity: 0;
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+            pointer-events: none;
+        }
+        #nav-menu.is-visible {
+            opacity: 1;
+            transform: scaleY(1) translateY(0);
+            box-shadow: 0 24px 50px rgba(7, 18, 35, 0.55);
+            pointer-events: auto;
+        }
+        .nav-mobile-fader {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 40;
+            display: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: rgba(10, 25, 47, 0.53);
+        }
+        .nav-mobile-fader.active { 
+            display: block;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-[#0A192F] text-[#CCD6F6] font-inter min-h-screen">
+    <canvas id="global-3d-canvas"></canvas>
+    <div id="cursor-spotlight" class="fixed pointer-events-none rounded-full opacity-70 hidden md:block z-[5]" style="width:420px;height:420px;left:50%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(200px_200px_at_center, rgba(255,255,255,0.07), rgba(100,255,218,0.06) 45%, rgba(100,255,218,0) 70%);"></div>
+    <div class="page-wrapper">
+    <nav class="sticky top-0 z-50 bg-[#0A192F] border-b border-slate-800 font-['Inter',_sans-serif]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+                <a href="{{ url_for('index') }}" class="text-cyan-300 text-xl sm:text-2xl font-bold tracking-tight hover:text-cyan-400 transition-colors">
+            LeSuccess Academy
+          </a>
+
+          <div class="hidden md:flex items-center gap-6">
+            <a href="{{ url_for('index') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Home</a>
+            <a href="{{ url_for('index') }}#how-it-works" class="text-slate-300 hover:text-cyan-400 transition-colors">How It Works</a>
+            <a href="{{ url_for('index') }}#why-choose-us" class="text-slate-300 hover:text-cyan-400 transition-colors">Why Choose Us</a>
+            <a href="{{ url_for('courses') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Courses</a>
+            <a href="{{ url_for('about') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">About</a>
+            <a href="{{ url_for('blog') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Blog</a>
+            <a href="{{ url_for('contact') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Contact</a>
+            <a href="{{ url_for('chat') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">AI Tutor</a>
+            <a href="{{ url_for('courses') }}" class="inline-flex items-center rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-[#0A192F] shadow-sm hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]">
+              Get Started
+                    </a>
+                </div>
+                
+          <button id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-300 hover:text-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
+            <svg id="icon-open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/>
+            </svg>
+            <svg id="icon-close" class="h-6 w-6 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+      <div id="nav-menu" class="md:hidden hidden origin-top bg-[#0A192F] border-t border-slate-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div class="flex flex-col gap-1">
+            <a href="{{ url_for('index') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Home</a>
+            <a href="{{ url_for('index') }}#how-it-works" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">How It Works</a>
+            <a href="{{ url_for('index') }}#why-choose-us" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Why Choose Us</a>
+            <a href="{{ url_for('courses') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Courses</a>
+            <a href="{{ url_for('about') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">About</a>
+            <a href="{{ url_for('blog') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Blog</a>
+            <a href="{{ url_for('contact') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Contact</a>
+            <a href="{{ url_for('chat') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">AI Tutor</a>
+            <a href="{{ url_for('courses') }}" class="mt-2 inline-flex items-center justify-center rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-[#0A192F] hover:bg-cyan-400 transition-colors">
+              Get Started
+            </a>
+            </div>
+        </div>
+        </div>
+
+      <script>
+        (function () {
+          const toggleBtn = document.getElementById('nav-toggle');
+          const menu = document.getElementById('nav-menu');
+          const fader = document.querySelector('.nav-mobile-fader');
+          let isAnimating = false;
+
+          if (!toggleBtn || !menu) return;
+
+          const body = document.body;
+          const iconOpen = document.getElementById('icon-open');
+          const iconClose = document.getElementById('icon-close');
+
+          function openMenu() {
+            if (isAnimating || menu.classList.contains('is-visible')) return;
+            isAnimating = true;
+            menu.classList.remove('hidden');
+            requestAnimationFrame(() => {
+              menu.classList.add('is-visible');
+              toggleBtn.setAttribute('aria-expanded', 'true');
+              body.classList.add('nav-open');
+              if (fader) fader.classList.add('active');
+              if (iconOpen) iconOpen.classList.add('hidden');
+              if (iconClose) iconClose.classList.remove('hidden');
+            });
+            const onEnd = () => { isAnimating = false; menu.removeEventListener('transitionend', onEnd); };
+            menu.addEventListener('transitionend', onEnd);
+          }
+
+          function closeMenu() {
+            if (isAnimating || !menu.classList.contains('is-visible')) return;
+            isAnimating = true;
+            menu.classList.remove('is-visible');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            body.classList.remove('nav-open');
+            if (fader) fader.classList.remove('active');
+            if (iconOpen) iconOpen.classList.remove('hidden');
+            if (iconClose) iconClose.classList.add('hidden');
+            const onEnd = () => {
+              menu.classList.add('hidden');
+              isAnimating = false;
+              menu.removeEventListener('transitionend', onEnd);
+            };
+            menu.addEventListener('transitionend', onEnd);
+          }
+
+          function toggleMenu() {
+            if (menu.classList.contains('is-visible')) {
+              closeMenu();
+            } else {
+              openMenu();
+            }
+          }
+
+          toggleBtn.addEventListener('click', toggleMenu);
+
+          menu.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => closeMenu());
+          });
+
+          if (fader) {
+            fader.addEventListener('click', closeMenu);
+          }
+
+          window.addEventListener('resize', () => {
+            if (window.matchMedia('(min-width: 768px)').matches) {
+              closeMenu();
+            }
+          });
+        })();
+      </script>
+    </nav>
+    <div class="nav-mobile-fader"></div>
+
+    
+    <section id="testimonials" class="pt-4 pb-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl sm:text-5xl font-extrabold text-[#E6F1FF]">
+                    What Our Students <span class="text-[#64FFDA]">Say</span>
+                </h2>
+                <p class="mt-3 text-lg text-[#A8B2D1]">Real stories from learners who transformed their careers with LeSuccess.</p>
+            </div>
+
+            <style>
+                /* Avatar Bounce Carousel (scoped to testimonials) */
+                #testimonials .avatar-carousel {
+                    display: flex;
+                    gap: 24px;
+                    padding: 24px 12px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                @media (min-width: 768px) {
+                    #testimonials .avatar-carousel {
+                        padding: 30px 0;
+                        gap: 28px;
+                    }
+                }
+                #testimonials .acard {
+                    background: rgba(255,255,255,0.06);
+                    padding: 18px 18px 20px;
+                    border-radius: 16px;
+                    text-align: center;
+                    width: 100%;
+                    max-width: 280px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    color: #CCD6F6;
+                    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55), box-shadow 0.5s;
+                }
+                @media (min-width: 640px) {
+                    #testimonials .acard { max-width: 300px; }
+                }
+                @media (min-width: 1024px) {
+                    #testimonials .acard { max-width: 320px; }
+                }
+                #testimonials .acard.active {
+                    transform: scale(1.05) translateY(-10px);
+                    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35),
+                                0 0 0 1px rgba(100,255,218,0.45),
+                                0 10px 30px rgba(100,255,218,0.20),
+                                0 0 40px rgba(100,255,218,0.25);
+                    animation: glowPulse 1.6s ease-in-out infinite;
+                }
+                #testimonials .acard img {
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 50%;
+                    margin-bottom: 12px;
+                    border: 3px solid rgba(100,255,218,0.35);
+                    box-shadow: 0 6px 18px rgba(100,255,218,0.18);
+                    object-fit: cover;
+                }
+                #testimonials .student-name {
+                    color: #E6F1FF;
+                    font-weight: 600;
+                    font-size: 1.05rem;
+                    margin-top: 2px;
+                }
+                #testimonials .student-course {
+                    color: #A8B2D1;
+                    font-size: 0.85rem;
+                    margin-bottom: 8px;
+                }
+                #testimonials .student-feedback {
+                    color: #CCD6F6;
+                    font-size: 0.95rem;
+                    line-height: 1.45rem;
+                }
+                @keyframes glowPulse {
+                    0% { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35),
+                                       0 0 0 1px rgba(100,255,218,0.45),
+                                       0 10px 30px rgba(100,255,218,0.20),
+                                       0 0 40px rgba(100,255,218,0.25); }
+                    50% { box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38),
+                                        0 0 0 1px rgba(100,255,218,0.65),
+                                        0 14px 38px rgba(100,255,218,0.28),
+                                        0 0 55px rgba(100,255,218,0.35); }
+                    100% { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35),
+                                         0 0 0 1px rgba(100,255,218,0.45),
+                                         0 10px 30px rgba(100,255,218,0.20),
+                                         0 0 40px rgba(100,255,218,0.25); }
+                }
+                /* Two-group visibility control */
+                #testimonials .group-2 { display: none; }
+            </style>
+
+            <div class="avatar-carousel">
+                <div class="acard active" aria-label="Student feedback 1">
+                    <img src="https://i.pravatar.cc/120?img=12" alt="Priya Sharma">
+                    <div class="student-name">Priya Sharma</div>
+                    <div class="student-course">Full-Stack Web Development</div>
+                    <div class="student-feedback">“Projects felt real and industry-ready. I landed a dev role within 2 months!”</div>
+                </div>
+                <div class="acard" aria-label="Student feedback 2">
+                    <img src="https://i.pravatar.cc/120?img=32" alt="Arjun Mehta">
+                    <div class="student-name">Arjun Mehta</div>
+                    <div class="student-course">Advanced Machine Learning</div>
+                    <div class="student-feedback">“Hands-on labs made complex ML topics approachable. Highly recommend!”</div>
+                </div>
+                <div class="acard" aria-label="Student feedback 3">
+                    <img src="https://i.pravatar.cc/120?img=5" alt="Nisha Patel">
+                    <div class="student-name">Nisha Patel</div>
+                    <div class="student-course">UI/UX Design Mastery</div>
+                    <div class="student-feedback">“Beautifully structured curriculum. My portfolio and confidence skyrocketed.”</div>
+                </div>
+                <div class="acard" aria-label="Student feedback 4">
+                    <img src="https://i.pravatar.cc/120?img=21" alt="Rohit Verma">
+                    <div class="student-name">Rohit Verma</div>
+                    <div class="student-course">Data Science & Analytics</div>
+                    <div class="student-feedback">“From zero to building predictive models. The mentorship was top-notch.”</div>
+                </div>
+                <div class="acard" aria-label="Student feedback 5">
+                    <img src="https://i.pravatar.cc/120?img=44" alt="Ananya Gupta">
+                    <div class="student-name">Ananya Gupta</div>
+                    <div class="student-course">Cloud Architecture & DevOps</div>
+                    <div class="student-feedback">“Clear, practical, and modern. I now ship confidently with CI/CD.”</div>
+                </div>
+                <div class="acard group-2" aria-label="Student feedback 6">
+                    <img src="https://i.pravatar.cc/120?img=13" alt="Sanjana Rao">
+                    <div class="student-name">Sanjana Rao</div>
+                    <div class="student-course">AI Fundamentals</div>
+                    <div class="student-feedback">“The foundations were crystal clear. It kicked off my AI journey.”</div>
+                </div>
+                <div class="acard group-2" aria-label="Student feedback 7">
+                    <img src="https://i.pravatar.cc/120?img=24" alt="Vikram Singh">
+                    <div class="student-name">Vikram Singh</div>
+                    <div class="student-course">Ethical Hacking & Security</div>
+                    <div class="student-feedback">“Practical labs and scenarios helped me crack my security interview.”</div>
+                </div>
+                <div class="acard group-2" aria-label="Student feedback 8">
+                    <img src="https://i.pravatar.cc/120?img=7" alt="Aisha Khan">
+                    <div class="student-name">Aisha Khan</div>
+                    <div class="student-course">Big Data & Analytics</div>
+                    <div class="student-feedback">“Spark finally made sense. I now handle data at scale.”</div>
+                </div>
+                <div class="acard group-2" aria-label="Student feedback 9">
+                    <img src="https://i.pravatar.cc/120?img=56" alt="Karan Patel">
+                    <div class="student-name">Karan Patel</div>
+                    <div class="student-course">Deep Learning & Neural Networks</div>
+                    <div class="student-feedback">“Built my first vision model. The guidance was superb.”</div>
+                </div>
+                <div class="acard group-2" aria-label="Student feedback 10">
+                    <img src="https://i.pravatar.cc/120?img=18" alt="Meera Joshi">
+                    <div class="student-name">Meera Joshi</div>
+                    <div class="student-course">Cloud Security & Compliance</div>
+                    <div class="student-feedback">“Great coverage of cloud risks and how to mitigate them.”</div>
+                </div>
+            </div>
+
+            <script>
+                (function(){
+                    const container = document.querySelector('#testimonials .avatar-carousel');
+                    if (!container) return;
+                    const group1 = Array.from(container.querySelectorAll('.acard:not(.group-2)'));
+                    const group2 = Array.from(container.querySelectorAll('.acard.group-2'));
+                    if (!group1.length) return;
+
+                    let currentGroup = 1; // 1 then 2 then back to 1 ...
+                    let currentIndex = 0;
+
+                    function setVisibility(groupToShow) {
+                        const show = groupToShow === 1 ? group1 : group2;
+                        const hide = groupToShow === 1 ? group2 : group1;
+                        // Hide the other group completely
+                        hide.forEach(card => {
+                            card.style.display = 'none';
+                            card.classList.remove('active');
+                        });
+                        // Explicitly set display to block so it overrides the CSS that hides group-2
+                        show.forEach((card, i) => {
+                            card.style.display = 'block';
+                            card.classList.toggle('active', i === 0);
+                        });
+                        currentIndex = 0;
+                    }
+
+                    // init with group 1
+                    setVisibility(1);
+
+                    function tick() {
+                        const activeGroup = currentGroup === 1 ? group1 : group2;
+                        if (!activeGroup.length) return;
+                        activeGroup[currentIndex].classList.remove('active');
+                        currentIndex = (currentIndex + 1) % activeGroup.length;
+                        activeGroup[currentIndex].classList.add('active');
+
+                        // when we looped back to index 0, switch group if the other exists
+                        if (currentIndex === 0) {
+                            if (currentGroup === 1 && group2.length) {
+                                currentGroup = 2;
+                                setVisibility(2);
+                            } else if (currentGroup === 2) {
+                                currentGroup = 1;
+                                setVisibility(1);
+                            }
+                        }
+                    }
+
+                    setInterval(tick, 2000);
+                })();
+            </script>
+        </div>
+    </section>
+
+    <section class="pt-0 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-5xl sm:text-6xl font-bold text-[#E6F1FF] mb-2">
+                    Our Full Course <span class="text-[#64FFDA]">Catalog</span>
+                </h1>
+                <p class="text-lg text-[#CCD6F6] max-w-3xl mx-auto">Explore our comprehensive collection of AI-powered courses designed to transform your career and unlock your potential.</p>
+            </div>
+
+            <div class="relative z-10 bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-2">
+                <div class="flex flex-col lg:flex-row gap-6 items-center justify-between">
+                    <div class="flex-1 max-w-md">
+                        <div class="relative" id="search-wrapper">
+                            <input type="text" id="search-input" placeholder="Search courses..." 
+                                   class="w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg px-4 py-3 pl-10 text-[#E6F1FF] placeholder-[#CCD6F6] focus:outline-none focus:ring-2 focus:ring-[#64FFDA] focus:border-transparent">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#CCD6F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <svg id="search-spinner" class="hidden absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-[#64FFDA] animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <button id="search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-100" aria-label="Clear search">
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <ul id="search-suggestions" class="invisible opacity-0 absolute left-0 right-0 top-[calc(100%+8px)] z-[60] bg-[#0A192F]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-white/10 transition duration-150 overflow-hidden"></ul>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="relative w-full md:w-auto" data-dropdown="category">
+                            <button type="button" class="dropdown-btn group w-full md:w-auto flex items-center justify-between md:justify-start gap-3 rounded-xl bg-white/10 backdrop-blur-lg text-white border border-white/20 px-4 py-3 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#64FFDA]/30 focus:border-[#64FFDA]/40" aria-haspopup="listbox" aria-expanded="false">
+                                <span class="text-[#E6F1FF]">Category:</span>
+                                <span class="selected-text font-medium text-[#64FFDA]">All Categories</span>
+                                <svg class="chevron ml-2 h-4 w-4 text-white transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.115l3.71-3.884a.75.75 0 1 1 1.08 1.04l-4.24 4.44a.75.75 0 0 1-1.08 0L5.25 8.27a.75.75 0 0 1-.02-1.06z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <ul class="dropdown-panel invisible absolute left-0 md:right-0 md:left-auto top-full z-[999] mt-2 w-full md:w-64 origin-top-right scale-95 opacity-0 rounded-xl bg-[#0A192F]/95 backdrop-blur-xl text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-white/10 transition duration-150" role="listbox" tabindex="-1">
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="all" data-label="All Categories">All Categories</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="ai-ml" data-label="AI & Machine Learning">AI & Machine Learning</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="web-dev" data-label="Web Development">Web Development</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="data-science" data-label="Data Science">Data Science</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="cybersecurity" data-label="Cybersecurity">Cybersecurity</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="design" data-label="UI/UX Design">UI/UX Design</li>
+                            </ul>
+                            <input type="hidden" id="category-filter" name="category" value="all" />
+                        </div>
+
+                        <div class="relative w-full md:w-auto" data-dropdown="difficulty">
+                            <button type="button" class="dropdown-btn group w-full md:w-auto flex items-center justify-between md:justify-start gap-3 rounded-xl bg-white/10 backdrop-blur-lg text-white border border-white/20 px-4 py-3 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#64FFDA]/30 focus:border-[#64FFDA]/40" aria-haspopup="listbox" aria-expanded="false">
+                                <span class="text-[#E6F1FF]">Difficulty:</span>
+                                <span class="selected-text font-medium text-[#64FFDA]">All Levels</span>
+                                <svg class="chevron ml-2 h-4 w-4 text-white transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.115l3.71-3.884a.75.75 0 1 1 1.08 1.04l-4.24 4.44a.75.75 0 0 1-1.08 0L5.25 8.27a.75.75 0 0 1-.02-1.06z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <ul class="dropdown-panel invisible absolute left-0 md:right-0 md:left-auto top-full z-[999] mt-2 w-full md:w-56 origin-top-right scale-95 opacity-0 rounded-xl bg-[#0A192F]/95 backdrop-blur-xl text-white border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-white/10 transition duration-150" role="listbox" tabindex="-1">
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="all" data-label="All Levels">All Levels</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="beginner" data-label="Beginner">Beginner</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="intermediate" data-label="Intermediate">Intermediate</li>
+                                <li class="dropdown-option px-4 py-2.5 cursor-pointer hover:bg-white/10 hover:text-[#64FFDA] transition" role="option" data-value="advanced" data-label="Advanced">Advanced</li>
+                            </ul>
+                            <input type="hidden" id="difficulty-filter" name="difficulty" value="all" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                /* Suggestions dropdown styles */
+                #search-suggestions li { padding: 10px 12px; cursor: pointer; }
+                #search-suggestions li:hover { background: rgba(255,255,255,0.06); color: #64FFDA; }
+                #search-suggestions .empty { padding: 12px; color: #9FB3CE; }
+                #search-suggestions { max-height: 260px; overflow-y: auto; }
+            </style>
+        </div>
+    </section>
+    
+
+    <div id="enroll-overlay" class="fixed inset-0 bg-black/70 hidden z-50"></div>
+    <div id="enroll-modal" class="fixed inset-0 hidden z-50 flex items-center justify-center p-4">
+        <div class="relative w-full max-w-lg bg-[#0A192F]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+            <button id="enroll-close" class="absolute top-3 right-3 text-slate-400 hover:text-[#64FFDA]" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="p-6">
+                <h3 id="enroll-title" class="text-2xl font-bold text-[#E6F1FF] mb-2">Enroll in: Course</h3>
+                <p id="enroll-summary" class="text-[#A8B2D1] mb-6">Fill in your details below and we’ll get you started right away.</p>
+                <form id="enroll-form" class="space-y-4" onsubmit="return false;">
+                    <div>
+                        <label for="fullName" class="block text-sm text-[#A8B2D1] mb-1">Full Name</label>
+                        <input id="fullName" type="text" placeholder="Your full name" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-[#E6F1FF] placeholder-[#A8B2D1] focus:outline-none focus:ring-2 focus:ring-[#64FFDA]">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm text-[#A8B2D1] mb-1">Email Address</label>
+                        <input id="email" type="email" placeholder="you@example.com" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-[#E6F1FF] placeholder-[#A8B2D1] focus:outline-none focus:ring-2 focus:ring-[#64FFDA]">
+                    </div>
+                    <p id="enroll-error" class="hidden text-sm text-rose-400">Kindly enter your details.</p>
+                    <button id="confirm-enroll" class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all">Confirm Enrollment</button>
+                </form>
+                <div id="enroll-success" class="hidden flex flex-col items-center justify-center text-center py-6">
+                    <div class="w-16 h-16 rounded-full bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <h4 class="text-2xl font-bold text-[#E6F1FF]">Success!</h4>
+                    <p class="text-[#A8B2D1] mt-2">You’re enrolled. We’ve emailed next steps and resources.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="pb-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="course-grid">
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="ai-ml" data-difficulty="intermediate">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">AI & ML</span>
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full">Intermediate</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$299</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Advanced Machine Learning
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Master advanced ML algorithms, deep learning architectures, and real-world applications. Build production-ready AI systems.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            12 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            2,847 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="web-dev" data-difficulty="beginner">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-medium rounded-full">Web Dev</span>
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">Beginner</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$199</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Full-Stack Web Development
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Learn modern web development with React, Node.js, and MongoDB. Build responsive, scalable applications from scratch.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            16 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            4,231 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="data-science" data-difficulty="intermediate">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-purple-500/20 text-purple-400 text-sm font-medium rounded-full">Data Science</span>
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full">Intermediate</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$349</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Data Science & Analytics
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Master Python, SQL, and statistical analysis. Learn to extract insights from complex datasets and build predictive models.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            14 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            3,156 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="cybersecurity" data-difficulty="advanced">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-red-500/20 text-red-400 text-sm font-medium rounded-full">Cybersecurity</span>
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-full">Advanced</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$399</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Ethical Hacking & Security
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Learn penetration testing, vulnerability assessment, and security architecture. Become a certified ethical hacker.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            18 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1,892 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="design" data-difficulty="beginner">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-pink-500/20 text-pink-400 text-sm font-medium rounded-full">Design</span>
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">Beginner</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$179</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        UI/UX Design Mastery
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Master design thinking, user research, and modern design tools. Create stunning interfaces that users love.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            10 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            2,654 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="ai-ml" data-difficulty="beginner">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">AI & ML</span>
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">Beginner</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$249</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        AI Fundamentals
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Start your AI journey with machine learning basics, neural networks, and practical applications. No prior experience required.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            8 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            5,432 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="web-dev" data-difficulty="intermediate">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-medium rounded-full">Web Dev</span>
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full">Intermediate</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$329</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Cloud Architecture & DevOps
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Master AWS, Docker, Kubernetes, and CI/CD pipelines. Build scalable, cloud-native applications with modern DevOps practices.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            15 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            2,187 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="data-science" data-difficulty="advanced">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-purple-500/20 text-purple-400 text-sm font-medium rounded-full">Data Science</span>
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-full">Advanced</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$449</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Big Data & Analytics
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Master Hadoop, Spark, and advanced analytics. Build enterprise-scale data pipelines and machine learning systems.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            20 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1,456 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="ai-ml" data-difficulty="advanced">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-[#64FFDA]/20 text-[#64FFDA] text-sm font-medium rounded-full">AI & ML</span>
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-full">Advanced</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$499</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Deep Learning & Neural Networks
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Advanced neural network architectures, computer vision, NLP, and reinforcement learning. Build cutting-edge AI applications.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            16 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1,234 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+
+                <div class="course-card bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-[#64FFDA]/40 hover:shadow-lg hover:shadow-[#64FFDA]/10 transition-all duration-300 group" data-category="cybersecurity" data-difficulty="intermediate">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-red-500/20 text-red-400 text-sm font-medium rounded-full">Cybersecurity</span>
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full">Intermediate</span>
+                        </div>
+                        <div class="text-[#64FFDA] font-bold text-lg">$279</div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors duration-300">
+                        Cloud Security & Compliance
+                    </h3>
+                    
+                    <p class="text-[#CCD6F6] mb-4 leading-relaxed">
+                        Secure cloud infrastructure, implement security best practices, and ensure compliance with industry standards.
+                    </p>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            12 weeks
+                        </div>
+                        <div class="flex items-center text-[#CCD6F6] text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            1,789 students
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#64FFDA] text-[#0A192F] py-3 rounded-lg font-semibold hover:bg-[#64FFDA]/90 transition-all duration-300 hover-scale">
+                        Enroll Now
+                    </button>
+                </div>
+            </div>
+            <div id="no-results" class="hidden mt-8"></div>
+        </div>
+    </section>
+
+    <section id="career-pathways" class="py-20 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-extrabold text-[#E6F1FF]">
+                    Forge Your <span class="text-[#64FFDA]">Career Path</span>
+                </h2>
+                <p class="mt-4 text-lg text-[#A8B2D1] max-w-3xl mx-auto">
+                    Go beyond learning tools. Master a role. Our pathways are designed with industry leaders to take you from fundamentals to job-ready expert.
+                </p>
+            </div>
+    
+            <div class="relative grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="hidden lg:block absolute inset-0 pointer-events-none" aria-hidden="true">
+                    <svg class="absolute top-1/2 left-1/4 w-1/2 h-auto -translate-y-1/2" width="404" height="784" fill="none" viewBox="0 0 404 784">
+                        <defs>
+                            <pattern id="d2a68205-9e66-47a6-8079-2c50da3570dc" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="4" height="4" class="text-slate-700" fill="currentColor" />
+                            </pattern>
+                        </defs>
+                        <rect width="404" height="784" fill="url(#d2a68205-9e66-47a6-8079-2c50da3570dc)" />
+                    </svg>
+                </div>
+    
+                <div class="path-card group relative col-span-1 lg:col-span-2 bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold text-[#E6F1FF] group-hover:text-[#64FFDA] transition-colors">AI & Machine Learning Engineer</h3>
+                        <p class="mt-2 text-[#A8B2D1] leading-relaxed">Build intelligent systems that can learn and adapt. From natural language processing to computer vision, you’ll be at the forefront of the AI revolution.</p>
+                        
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Technology Stack:</p>
+                            <div class="flex flex-wrap gap-4 items-center">
+                                <div class="tech-icon" title="Python"><img src="{{ url_for('static', filename='icons/python.png') }}" alt="Python"></div>
+                                <div class="tech-icon" title="TensorFlow"><img src="{{ url_for('static', filename='icons/tensorflow.png') }}" alt="TensorFlow"></div>
+                                <div class="tech-icon" title="PyTorch"><img src="{{ url_for('static', filename='icons/PyTorch.png') }}" alt="PyTorch"></div>
+                                <div class="tech-icon" title="Scikit-learn"><img src="{{ url_for('static', filename='icons/scikitlearn.png') }}" alt="Scikit-learn"></div>
+                            </div>
+                        </div>
+    
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Hired By:</p>
+                            <div class="flex flex-wrap gap-4 items-center opacity-70">
+                                <div class="company-logo" title="Google"><img src="{{ url_for('static', filename='icons/google.png') }}" alt="Google"></div>
+                                <div class="company-logo" title="NVIDIA"><img src="{{ url_for('static', filename='icons/nvidia.png') }}" alt="NVIDIA"></div>
+                                <div class="company-logo" title="Microsoft"><img src="{{ url_for('static', filename='icons/microsoft2.png') }}" alt="Microsoft"></div>
+                                <div class="company-logo" title="OpenAI"><img src="{{ url_for('static', filename='icons/openai2.png') }}" alt="OpenAI"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="spotlight"></div>
+                </div>
+    
+                <div class="path-card group relative col-span-1 bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold text-[#E6F1FF] group-hover:text-[#64FFDA] transition-colors">Full-Stack Developer</h3>
+                        <p class="mt-2 text-[#A8B2D1] leading-relaxed">Architect and build complete web applications from server to screen. Master the entire development lifecycle.</p>
+                        
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Technology Stack:</p>
+                            <div class="flex flex-wrap gap-4 items-center">
+                                 <div class="tech-icon" title="React"><img src="{{ url_for('static', filename='icons/React.png') }}" alt="React"></div>
+                                 <div class="tech-icon" title="Node.js"><img src="{{ url_for('static', filename='icons/nodejs.png') }}" alt="Node.js"></div>
+                                 <div class="tech-icon" title="PostgreSQL"><img src="{{ url_for('static', filename='icons/postgresql.png') }}" alt="PostgreSQL"></div>
+                            </div>
+                        </div>
+    
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Hired By:</p>
+                            <div class="flex flex-wrap gap-4 items-center opacity-70">
+                                <div class="company-logo" title="Vercel"><img src="{{ url_for('static', filename='icons/vercel.png') }}" alt="Vercel"></div>
+                                <div class="company-logo" title="Shopify"><img src="{{ url_for('static', filename='icons/shopify.png') }}" alt="Shopify"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="spotlight"></div>
+                </div>
+    
+                <div class="path-card group relative col-span-1 lg:col-span-3 bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold text-[#E6F1FF] group-hover:text-[#64FFDA] transition-colors">Cloud & DevOps Architect</h3>
+                        <p class="mt-2 text-[#A8B2D1] leading-relaxed">Design, build, and maintain scalable and resilient cloud infrastructure. Automate deployment pipelines and ensure systems are secure and efficient.</p>
+                        
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Technology Stack:</p>
+                            <div class="flex flex-wrap gap-4 items-center">
+                                <div class="tech-icon" title="AWS"><img src="{{ url_for('static', filename='icons/aws.png') }}" alt="AWS"></div>
+                                <div class="tech-icon" title="Kubernetes"><img src="{{ url_for('static', filename='icons/kubernets.png') }}" alt="Kubernetes"></div>
+                                <div class="tech-icon" title="Docker"><img src="{{ url_for('static', filename='icons/docker.png') }}" alt="Docker"></div>
+                                <div class="tech-icon" title="Terraform"><img src="{{ url_for('static', filename='icons/terraform.png') }}" alt="Terraform"></div>
+                                <div class="tech-icon" title="GitHub"><img src="{{ url_for('static', filename='icons/github.png') }}" alt="GitHub"></div>
+                            </div>
+                        </div>
+    
+                        <div class="mt-6">
+                            <p class="text-sm font-semibold text-[#64FFDA] mb-3">Hired By:</p>
+                            <div class="flex flex-wrap gap-4 items-center opacity-70">
+                                <div class="company-logo" title="Amazon"><img src="{{ url_for('static', filename='icons/amazon.png') }}" alt="Amazon"></div>
+                                <div class="company-logo" title="Netflix"><img src="{{ url_for('static', filename='icons/netflix.png') }}" alt="Netflix"></div>
+                                <div class="company-logo" title="Atlassian"><img src="{{ url_for('static', filename='icons/atlassian.png') }}" alt="Atlassian"></div>
+                                <div class="company-logo" title="Stripe"><img src="{{ url_for('static', filename='icons/stripe.png') }}" alt="Stripe"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="spotlight"></div>
+                </div>
+    
+            </div>
+        </div>
+    </section>
+    
+    <style>
+        .path-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .path-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(100, 255, 218, 0.4);
+            box-shadow: 0 0 0 1px rgba(100, 255, 218, 0.4), 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .tech-icon, .company-logo {
+            height: 40px;
+            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        .tech-icon:hover {
+            transform: scale(1.15);
+        }
+        .tech-icon img, .company-logo img {
+            max-height: 100%;
+            max-width: 100%;
+            filter: grayscale(100%) brightness(1.5) contrast(0.8);
+            opacity: 0.7;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+        .path-card:hover .tech-icon img,
+        .path-card:hover .company-logo img {
+            filter: grayscale(0%) brightness(1) contrast(1);
+            opacity: 1;
+        }
+        .spotlight {
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem; /* 16px */
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: radial-gradient(
+                350px circle at var(--mx) var(--my),
+                rgba(100, 255, 218, 0.15),
+                transparent 80%
+            );
+        }
+        .path-card:hover .spotlight {
+            opacity: 1;
+        }
+    </style>
+    
+    <footer class="bg-[#0A192F]/95 backdrop-blur-md border-t border-[#64FFDA]/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-16">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Company</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="{{ url_for('about') }}" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    About Us
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('blog') }}" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Blog
+                                </a>
+                            </li>
+                            <li>
+                                <a href="" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Careers
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Courses</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    AI & Machine Learning
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Web Development
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Data Science
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Support</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="{{ url_for('contact') }}" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Contact Us
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{url_for('contact')}}#FAQ" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    FAQ
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Privacy Policy
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="py-8 border-t border-[#64FFDA]/20">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-[#CCD6F6] text-sm mb-4 md:mb-0">
+                        © 2025 Lesucess Academy. All Rights Reserved.
+                    </div>
+
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="LinkedIn">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="Instagram">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="YouTube">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <section class="animation-section">
+      <div class="word-row">
+        <span class="letter" style="color: oklch(0.7 0.3 0deg); animation-delay: 0s;">L</span>
+        <span class="letter" style="color: oklch(0.7 0.3 40deg); animation-delay: 0.5s;">e</span>
+        <span class="letter" style="color: oklch(0.7 0.3 80deg); animation-delay: 1.0s;">S</span>
+        <span class="letter" style="color: oklch(0.7 0.3 120deg); animation-delay: 1.5s;">u</span>
+        <span class="letter" style="color: oklch(0.7 0.3 160deg); animation-delay: 2.0s;">c</span>
+        <span class="letter" style="color: oklch(0.7 0.3 200deg); animation-delay: 2.5s;">c</span>
+        <span class="letter" style="color: oklch(0.7 0.3 240deg); animation-delay: 3.0s;">e</span>
+        <span class="letter" style="color: oklch(0.7 0.3 280deg); animation-delay: 3.5s;">s</span>
+        <span class="letter" style="color: oklch(0.7 0.3 320deg); animation-delay: 4.0s;">s</span>
+      </div>
+    </section>
+    <style>
+        .animation-section {
+        padding: 4rem 0;
+        background:#0A192F;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+        line-height: 0;
+        user-select: none;
+        transition: line-height 1s;
+        min-height: 50vh;
+      }
+      .animation-section:active {
+        line-height: 2;
+      }
+      .letter {
+        font-size: 17vw;
+        font-weight: bold;
+        margin: 0 2px;
+        display: inline-block;
+        animation: rotate 3s ease-in-out infinite;
+        transition: line-height 1s, filter 0.5s;
+        transform-origin: center top;
+        mix-blend-mode: lighten;
+      }
+      .letter:hover {
+        filter: hue-rotate(270deg);
+      }
+      @keyframes rotate {
+        100% {
+          transform: rotateZ(360deg) rotateX(0deg);
+        }
+        50%,
+        75% {
+          transform: rotateZ(0deg) rotateX(360deg);
+        }
+      }
+    </style>
+
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute inset-0 opacity-5">
+            <div class="h-full w-full" style="background-image: radial-gradient(circle, #64FFDA 1px, transparent 1px); background-size: 50px 50px;"></div>
+        </div>
+        
+        <div class="absolute top-1/4 left-1/4 w-2 h-2 bg-[#64FFDA]/30 rounded-full animate-pulse"></div>
+        <div class="absolute top-3/4 right-1/4 w-1 h-1 bg-[#64FFDA]/40 rounded-full animate-pulse delay-1000"></div>
+        <div class="absolute top-1/2 right-1/3 w-1.5 h-1.5 bg-[#64FFDA]/25 rounded-full animate-pulse delay-500"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-1 h-1 bg-[#64FFDA]/35 rounded-full animate-pulse delay-1500"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Close mobile menu when clicking on a link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', function() {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Course filtering functionality + live suggestions
+        (function() {
+            const searchInput = document.getElementById('search-input');
+            const searchWrapper = document.getElementById('search-wrapper');
+            const searchSpinner = document.getElementById('search-spinner');
+            const searchClear = document.getElementById('search-clear');
+            const suggestionsEl = document.getElementById('search-suggestions');
+            const categoryFilter = document.getElementById('category-filter'); // hidden input now
+            const difficultyFilter = document.getElementById('difficulty-filter'); // hidden input now
+            const courseGrid = document.getElementById('course-grid');
+            const courseCards = document.querySelectorAll('.course-card');
+            const noResults = document.getElementById('no-results');
+
+            // Build a local list of course titles and references for suggestions
+            const courseIndex = Array.from(courseCards).map(card => ({
+                title: card.querySelector('h3')?.textContent?.trim() || '',
+                el: card
+            }));
+
+            function setSuggestionsVisible(visible){
+                if (!suggestionsEl) return;
+                if (visible) {
+                    suggestionsEl.classList.remove('invisible','opacity-0');
+                    suggestionsEl.classList.add('visible','opacity-100');
+                } else {
+                    suggestionsEl.classList.add('invisible','opacity-0');
+                    suggestionsEl.classList.remove('visible','opacity-100');
+                }
+            }
+
+            // --- Fading Constellation animation for the No Results panel ---
+            function renderNoResultsConstellation(text) {
+                try {
+                    const canvas = document.getElementById('nores-constellation');
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    const dpr = Math.max(1, window.devicePixelRatio || 1);
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+                    ctx.scale(dpr, dpr);
+                    ctx.clearRect(0, 0, rect.width, rect.height);
+
+                    const off = document.createElement('canvas');
+                    off.width = rect.width; off.height = rect.height;
+                    const octx = off.getContext('2d');
+                    const fontSize = Math.min(120, Math.max(40, Math.floor(rect.width * 0.18)));
+                    octx.fillStyle = '#fff';
+                    octx.textAlign = 'center';
+                    octx.textBaseline = 'middle';
+                    octx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+                    octx.fillText(text || '', rect.width / 2, rect.height / 2);
+
+                    const imageData = octx.getImageData(0, 0, rect.width, rect.height).data;
+                    const points = [];
+                    const step = 6; // sampling step for pixels
+                    for (let y = 0; y < rect.height; y += step) {
+                        for (let x = 0; x < rect.width; x += step) {
+                            const idx = (y * rect.width + x) * 4 + 3; // alpha
+                            if (imageData[idx] > 128 && Math.random() < 0.45) {
+                                points.push({ x, y, a: 0 });
+                            }
+                        }
+                    }
+
+                    let t = 0;
+                    const duration = 2200; // ms
+                    const start = performance.now();
+
+                    function rnd(n){ return (Math.random() * 2 - 1) * n; }
+
+                    function draw(now){
+                        t = now - start;
+                        ctx.clearRect(0, 0, rect.width, rect.height);
+                        const progress = Math.min(1, t / duration);
+                        const alpha = progress < 0.6 ? progress / 0.6 : (1 - progress) / 0.4;
+                        ctx.globalAlpha = Math.max(0, alpha);
+
+                        ctx.fillStyle = 'rgba(100,255,218,0.9)';
+                        points.forEach(p => {
+                            const jitterX = rnd(0.6) * (1 - progress);
+                            const jitterY = rnd(0.6) * (1 - progress);
+                            ctx.beginPath();
+                            ctx.arc(p.x + jitterX, p.y + jitterY, 1.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+
+                        ctx.strokeStyle = 'rgba(100,255,218,0.35)';
+                        ctx.lineWidth = 0.7;
+                        for (let i = 0; i < Math.min(60, points.length - 1); i++) {
+                            const a = points[(i * 13) % points.length];
+                            const b = points[(i * 29 + 7) % points.length];
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(b.x, b.y);
+                            ctx.stroke();
+                        }
+
+                        if (t < duration) requestAnimationFrame(draw); else ctx.clearRect(0, 0, rect.width, rect.height);
+                    }
+                    requestAnimationFrame(draw);
+                } catch(e) { /* safely ignore */ }
+            }
+
+            function filterCourses() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedCategory = categoryFilter.value;
+                const selectedDifficulty = difficultyFilter.value;
+
+                let numVisible = 0;
+                courseCards.forEach(card => {
+                    const title = card.querySelector('h3').textContent.toLowerCase();
+                    const category = card.getAttribute('data-category');
+                    const difficulty = card.getAttribute('data-difficulty');
+
+                    const matchesSearch = searchTerm === '' || title.includes(searchTerm);
+                    const matchesCategory = selectedCategory === 'all' || category === selectedCategory;
+                    const matchesDifficulty = selectedDifficulty === 'all' || difficulty === selectedDifficulty;
+
+                    if (matchesSearch && matchesCategory && matchesDifficulty) {
+                        card.style.display = 'block';
+                        card.classList.add('animate-fadeInUp');
+                        numVisible++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (noResults) {
+                    noResults.classList.toggle('hidden', numVisible !== 0);
+                    if (numVisible === 0) {
+                        const q = searchInput.value.trim();
+                        noResults.innerHTML = `
+                            <style>
+                                .no-results-emoji-container { animation: emoji-search-float 3.5s ease-in-out infinite; }
+                                @keyframes emoji-search-float { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-12px) rotate(8deg); } }
+                                .no-results-panel { animation: panel-glow 4s ease-in-out infinite; }
+                                @keyframes panel-glow { 0%, 100% { box-shadow: 0 0 20px rgba(100, 255, 218, 0.05), 0 0 40px rgba(100, 255, 218, 0.08); border-color: rgba(100, 255, 218, 0.2); } 50% { box-shadow: 0 0 30px rgba(100, 255, 218, 0.1), 0 0 60px rgba(100, 255, 218, 0.12); border-color: rgba(100, 255, 218, 0.4); } }
+                            </style>
+                            <div class="no-results-panel relative mx-auto max-w-2xl bg-[#0A192F]/50 backdrop-blur-xl border border-[#64FFDA]/20 rounded-3xl p-8 sm:p-12 text-center overflow-hidden transition-all duration-300">
+                                <canvas id="nores-constellation" class="absolute inset-0 w-full h-full opacity-50 pointer-events-none"></canvas>
+                                <div class="relative">
+                                  <div class="no-results-emoji-container relative mx-auto mb-6 w-20 h-20 rounded-full bg-[#64FFDA]/10 border-2 border-[#64FFDA]/30 flex items-center justify-center">
+                                      <span class="text-4xl">🧐</span>
+                                      <span class="absolute inset-0 rounded-full" style="box-shadow:0 0 0 8px rgba(100,255,218,0.05) inset, 0 0 40px rgba(100,255,218,0.15);"></span>
+                                  </div>
+                                  <h3 class="text-3xl sm:text-4xl font-bold text-white mb-3">No Courses Found</h3>
+                                  <p class="text-slate-300 max-w-md mx-auto mb-8">We couldn't find a match for <strong class="text-[#64FFDA] font-semibold">'${q || 'your search'}'</strong>. Try a different keyword!</p>
+                                  <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                                      <button id="nores-all" class="inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#64FFDA] px-6 py-3 text-base font-semibold text-[#0A192F] shadow-lg shadow-[#64FFDA]/20 hover:bg-white hover:text-[#0A192F] transition-all duration-300 transform hover:scale-105 w-full sm:w-auto">
+                                          View All Courses
+                                      </button>
+                                      <button id="nores-clear" class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-500/20 px-5 py-3 text-base font-medium text-slate-200 hover:bg-slate-500/40 hover:text-white transition-all duration-300 w-full sm:w-auto">
+                                          Clear Search
+                                      </button>
+                                  </div>
+                                </div>
+                            </div>`;
+                        const clearBtn = document.getElementById('nores-clear');
+                        const allBtn = document.getElementById('nores-all');
+                        clearBtn?.addEventListener('click', ()=>{
+                            searchInput.value = '';
+                            setSuggestionsVisible(false);
+                            searchClear?.classList.add('hidden');
+                            filterCourses();
+                            searchInput.focus();
+                        });
+                        allBtn?.addEventListener('click', ()=>{
+                            searchInput.value = '';
+                            categoryFilter.value = 'all';
+                            difficultyFilter.value = 'all';
+                            document.querySelector('[data-dropdown="category"] .selected-text').textContent = 'All Categories';
+                            document.querySelector('[data-dropdown="difficulty"] .selected-text').textContent = 'All Levels';
+                            setSuggestionsVisible(false);
+                            searchClear?.classList.add('hidden');
+                            filterCourses();
+                        });
+                        renderNoResultsConstellation((q || '').toUpperCase().slice(0,12));
+                    }
+                }
+            }
+
+            searchInput.addEventListener('input', (e)=>{
+                const value = e.target.value;
+                if (searchClear) searchClear.classList.toggle('hidden', value.length === 0);
+
+                if (searchSpinner) searchSpinner.classList.toggle('hidden', value.length === 0);
+                window.clearTimeout(searchInput._debounceTimer);
+                searchInput._debounceTimer = window.setTimeout(()=>{
+                    if (searchSpinner) searchSpinner.classList.add('hidden');
+                    if (!suggestionsEl) return;
+                    suggestionsEl.innerHTML = '';
+                    const term = value.trim().toLowerCase();
+                    if (!term) { setSuggestionsVisible(false); filterCourses(); return; }
+                    const matches = courseIndex.filter(c => c.title.toLowerCase().includes(term)).slice(0,6);
+                    if (matches.length === 0) {
+                        const li = document.createElement('li');
+                        li.className = 'empty';
+                        li.textContent = `No matches for "${value}"`;
+                        suggestionsEl.appendChild(li);
+                    } else {
+                        matches.forEach(m => {
+                            const li = document.createElement('li');
+                            li.textContent = m.title;
+                            li.addEventListener('click', ()=>{
+                                searchInput.value = m.title;
+                                setSuggestionsVisible(false);
+                                filterCourses();
+                                searchInput.focus();
+                                if (searchClear) searchClear.classList.remove('hidden');
+                            });
+                            suggestionsEl.appendChild(li);
+                        });
+                    }
+                    setSuggestionsVisible(true);
+                    filterCourses();
+                }, 180);
+            });
+            if (searchClear) {
+                searchClear.addEventListener('click', ()=>{
+                    searchInput.value = '';
+                    setSuggestionsVisible(false);
+                    if (searchSpinner) searchSpinner.classList.add('hidden');
+                    searchClear.classList.add('hidden');
+                    filterCourses();
+                    searchInput.focus();
+                });
+            }
+            document.addEventListener('click', (ev)=>{
+                if (searchWrapper && !searchWrapper.contains(ev.target)) setSuggestionsVisible(false);
+            });
+            categoryFilter.addEventListener('change', filterCourses);
+            difficultyFilter.addEventListener('change', filterCourses);
+        })();
+
+        // Custom dropdown interactions
+        (function () {
+            const DROPDOWN_OPEN_CLASS = 'visible opacity-100 scale-100';
+            const DROPDOWN_CLOSED_CLASS = 'invisible opacity-0 scale-95';
+
+            function getParts(root) {
+                return {
+                    button: root.querySelector('.dropdown-btn'),
+                    panel: root.querySelector('.dropdown-panel'),
+                    chevron: root.querySelector('.chevron'),
+                    selectedText: root.querySelector('.selected-text'),
+                    hiddenInput: root.querySelector('input[type="hidden"]'),
+                    options: Array.from(root.querySelectorAll('.dropdown-option')),
+                };
+            }
+
+            function closeDropdown(root) {
+                const { panel, button, chevron } = getParts(root);
+                if (!panel) return;
+                panel.classList.remove(...DROPDOWN_OPEN_CLASS.split(' '));
+                panel.classList.add(...DROPDOWN_CLOSED_CLASS.split(' '));
+                if (button) button.setAttribute('aria-expanded', 'false');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+
+            function openDropdown(root) {
+                const { panel, button, chevron } = getParts(root);
+                if (!panel) return;
+                panel.classList.remove(...DROPDOWN_CLOSED_CLASS.split(' '));
+                panel.classList.add(...DROPDOWN_OPEN_CLASS.split(' '));
+                if (button) button.setAttribute('aria-expanded', 'true');
+                if (chevron) chevron.classList.add('rotate-180');
+            }
+
+            function toggleDropdown(root) {
+                const { panel } = getParts(root);
+                const isOpen = panel && !panel.classList.contains('invisible');
+                if (isOpen) {
+                    closeDropdown(root);
+                } else {
+                    document.querySelectorAll('[data-dropdown]').forEach((other) => {
+                        if (other !== root) closeDropdown(other);
+                    });
+                    openDropdown(root);
+                }
+            }
+
+            document.querySelectorAll('[data-dropdown]').forEach((root) => {
+                const { button, panel, options, selectedText, hiddenInput } = getParts(root);
+                if (!button || !panel) return;
+
+                panel.classList.add(...DROPDOWN_CLOSED_CLASS.split(' '));
+                button.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(root); });
+
+                options.forEach((opt) => {
+                    opt.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const label = opt.getAttribute('data-label') || opt.textContent.trim();
+                        const value = opt.getAttribute('data-value') || label;
+                        if (selectedText) selectedText.textContent = label;
+                        if (hiddenInput) {
+                            hiddenInput.value = value;
+                            hiddenInput.dispatchEvent(new Event('change'));
+                        }
+                        closeDropdown(root);
+                    });
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-dropdown]').forEach((root) => {
+                    if (!root.contains(e.target)) closeDropdown(root);
+                });
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('[data-dropdown]').forEach(closeDropdown);
+                }
+            });
+        })();
+
+        // Add scroll effect to navigation
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('nav');
+            if (nav) {
+              if (window.scrollY > 100) {
+                  nav.classList.add('bg-[#0A192F]/95');
+              } else {
+                  nav.classList.remove('bg-[#0A192F]/95');
+              }
+            }
+        });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- 3D BACKGROUND LOGIC ---
+        const canvas = document.getElementById('global-3d-canvas');
+        if (!canvas) return;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        const clock = new THREE.Clock();
+
+        let particleSystem;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 7000;
+        const posArray = new Float32Array(particlesCount * 3);
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 15;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.008, color: 0x64FFDA, transparent: true });
+        particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particleSystem);
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x64FFDA, 1.5, 100);
+        scene.add(pointLight);
+
+        camera.position.z = 5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+            if (particleSystem) { particleSystem.rotation.y = .03 * elapsedTime; }
+            pointLight.position.copy(camera.position);
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+        animate();
+
+        // Enroll Modal logic
+        (function(){
+            const overlay = document.getElementById('enroll-overlay');
+            const modal = document.getElementById('enroll-modal');
+            const closeBtn = document.getElementById('enroll-close');
+            const titleEl = document.getElementById('enroll-title');
+            const form = document.getElementById('enroll-form');
+            const confirmBtn = document.getElementById('confirm-enroll');
+            const successEl = document.getElementById('enroll-success');
+
+            function openModal(courseTitle){
+                if (titleEl) titleEl.textContent = 'Enroll in: ' + courseTitle;
+                overlay.classList.remove('hidden');
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                successEl?.classList.add('hidden');
+                form?.classList.remove('hidden');
+                form?.reset?.();
+                document.getElementById('enroll-error')?.classList.add('hidden');
+                form.style.opacity = '1';
+
+                gsap.set(overlay, { opacity: 0 });
+                gsap.set(modal.querySelector('.relative'), { opacity: 0, scale: 0.9 });
+                gsap.timeline()
+                  .to(overlay, { opacity: 1, duration: 0.2, ease: 'power2.out' })
+                  .to(modal.querySelector('.relative'), { opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out' }, '<');
+            }
+            function closeModal(){
+                gsap.timeline({
+                  onComplete: () => {
+                    overlay.classList.add('hidden');
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                  }
+                })
+                .to(modal.querySelector('.relative'), { opacity: 0, scale: 0.95, duration: 0.2, ease: 'power2.in' })
+                .to(overlay, { opacity: 0, duration: 0.2, ease: 'power2.in' }, '<');
+            }
+            overlay?.addEventListener('click', closeModal);
+            closeBtn?.addEventListener('click', closeModal);
+
+            document.querySelectorAll('.course-card button').forEach(btn=>{
+                const title = btn.closest('.course-card')?.querySelector('h3')?.textContent?.trim() || 'Selected Course';
+                btn?.addEventListener('click', ()=> openModal(title));
+            });
+
+            confirmBtn?.addEventListener('click', ()=>{
+                const fullName = document.getElementById('fullName');
+                const email = document.getElementById('email');
+                const err = document.getElementById('enroll-error');
+                if (!fullName.value || !email.value) {
+                    if (err) err.classList.remove('hidden');
+                    return;
+                }
+                if (err) err.classList.add('hidden');
+                
+                gsap.to(form, { opacity: 0, duration: 0.2, onComplete: ()=>{
+                    form.classList.add('hidden');
+                    successEl.classList.remove('hidden');
+                    gsap.fromTo(successEl, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 });
+                    try {
+                        const modalRect = modal.querySelector('.relative')?.getBoundingClientRect();
+                        confetti({
+                            particleCount: 120, startVelocity: 35, spread: 60,
+                            origin: { x: (modalRect.left + modalRect.width/2) / window.innerWidth, y: (modalRect.top + modalRect.height/2) / window.innerHeight },
+                            colors: ['#64FFDA','#A8B2D1','#E6F1FF','#00E5FF']
+                        });
+                    } catch(e) {}
+                    setTimeout(closeModal, 2200);
+                }});
+            });
+        })();
+
+        // VanillaTilt + Card spotlight
+        (function(){
+            const cards = document.querySelectorAll('.course-card');
+            if (window.VanillaTilt && cards.length) {
+                VanillaTilt.init(cards, { max: 8, speed: 400, glare: true, 'max-glare': 0.15, scale: 1.02 });
+            }
+            cards.forEach((card)=>{
+                const spot = document.createElement('div');
+                spot.className = 'pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200';
+                spot.style.background = 'radial-gradient(200px 200px at var(--mx,50%) var(--my,50%), rgba(100,255,218,0.18), rgba(100,255,218,0.08) 45%, rgba(100,255,218,0) 65%)';
+                card.style.position = 'relative'; card.appendChild(spot);
+                card.addEventListener('mouseenter', ()=>{
+                    spot.style.opacity = '1';
+                    card.style.boxShadow = '0 0 0 1px rgba(100,255,218,0.5), 0 10px 30px rgba(100,255,218,0.12)';
+                });
+                card.addEventListener('mouseleave', ()=>{
+                    spot.style.opacity = '0';
+                    card.style.boxShadow = '';
+                });
+                card.addEventListener('mousemove', (e)=>{
+                    const rect = card.getBoundingClientRect();
+                    spot.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+                    spot.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+                });
+            });
+        })();
+
+        // Cursor spotlight
+        (function(){
+            const spot = document.getElementById('cursor-spotlight');
+            if (!spot || !canvas) return;
+            canvas.style.zIndex = '1';
+            document.querySelector('.page-wrapper')?.style.setProperty('z-index','10');
+            spot.classList.remove('hidden');
+            window.addEventListener('mousemove', (e)=>{
+                spot.style.left = e.clientX + 'px';
+                spot.style.top = e.clientY + 'px';
+            });
+        })();
+
+        // Spotlight effect for the new career path cards
+        document.querySelectorAll('.path-card').forEach(card => {
+            const spotlight = card.querySelector('.spotlight');
+            if(spotlight) {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    spotlight.style.setProperty('--mx', `${x}px`);
+                    spotlight.style.setProperty('--my', `${y}px`);
+                });
+            }
+        });
+
+        // Intersection Observer for new career path cards
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    entry.target.style.transition = `opacity 0.6s ease-out ${index * 150}ms, transform 0.6s ease-out ${index * 150}ms`;
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.path-card, #career-pathways h2, #career-pathways p').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.willChange = 'transform, opacity';
+            observer.observe(el);
+        });
+
+        const style = document.createElement('style');
+        style.innerHTML = `.is-visible { opacity: 1 !important; transform: translateY(0) !important; }`;
+        document.head.appendChild(style);
+
+    });
+  </script>
+</body>
+</html>

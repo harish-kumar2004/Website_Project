@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeSuccess Tutor - AI Learning Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sidebar {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        
+        .sidebar.collapsed .sidebar-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar-text {
+            transition: opacity 0.3s ease, width 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .main-content {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .message {
+            animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .typing-indicator {
+            display: none;
+        }
+        
+        .typing-indicator.show {
+            display: block;
+            animation: fadeInUp 0.3s ease-out;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typingPulse 1.4s ease-in-out infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingPulse {
+            0%, 60%, 100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px) scale(1.2);
+                opacity: 1;
+            }
+        }
+        
+        .chat-bubble {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #667eea;
+            color: white;
+            border-radius: 1.5rem;
+            border-top-right-radius: 0.25rem;
+        }
+        
+        .ai-message {
+            background: #ffffff;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            color: #1a202c;
+            border-radius: 1.5rem;
+            border-top-left-radius: 0.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .profile-dropdown {
+            display: none;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+            animation: fadeInUp 0.3s ease-out;
+        }
+        
+        .chat-background {
+            background: #ffffff;
+        }
+        
+        .send-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #667eea;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .send-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .send-button:active {
+            transform: scale(0.95);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+        
+        .auth-modal-backdrop {
+            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .auth-modal-content {
+            animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .auth-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .auth-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .auth-button:active {
+            transform: translateY(0);
+        }
+        
+        .nav-icon {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item:hover .nav-icon {
+            transform: scale(1.1);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast.error {
+            background: #dc2626;
+        }
+        
+        .toast.success {
+            background: #10b981;
+        }
+        
+        .toast-icon {
+            font-size: 20px;
+        }
+        
+        .display-name-modal {
+            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .display-name-content {
+            animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .home-dashboard {
+            display: none;
+        }
+        
+        .home-dashboard.active {
+            display: block;
+        }
+        
+        .chat-interface {
+            display: none !important;
+        }
+        
+        .chat-interface.active {
+            display: flex !important;
+            flex-direction: column;
+        }
+        
+        .course-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .course-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+        
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .learning-path-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+        }
+        
+        .quick-action-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar w-64 border-r border-gray-200 flex flex-col">
+            <!-- Profile Section -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=40" 
+                             alt="User" class="w-10 h-10 rounded-full">
+                    </div>
+                    <div class="flex-1 min-w-0 sidebar-text">
+                        <p id="user-name" class="text-sm font-medium text-gray-900 truncate">Loading...</p>
+                        <p class="text-xs text-gray-500">Student</p>
+                    </div>
+                    <button id="sidebar-toggle" class="p-1 hover:bg-gray-100 rounded transition-colors">
+                        <i class="fas fa-chevron-left text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4 space-y-2">
+                <button id="home-btn" class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors w-full text-left">
+                    <i class="fas fa-home nav-icon text-blue-600"></i>
+                    <span class="sidebar-text">Home</span>
+                </button>
+                <button id="new-chat-btn" class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg w-full text-left transition-colors">
+                    <i class="fas fa-comments nav-icon text-purple-600"></i>
+                    <span class="sidebar-text">New Chat</span>
+                </button>
+                <button id="my-tasks-btn" class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg w-full text-left transition-colors">
+                    <i class="fas fa-tasks nav-icon text-indigo-600"></i>
+                    <span class="sidebar-text">My Tasks</span>
+                </button>
+            </nav>
+
+            <!-- Recent Chats -->
+            <div class="p-4 border-t border-gray-200">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 sidebar-text">Today</h3>
+                <div class="space-y-2">
+                    <div class="today-item flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors" data-search="Math Problem Solving">
+                        <i class="fas fa-search text-purple-500"></i>
+                        <span class="sidebar-text">Math Problem Solving</span>
+                    </div>
+                    <div class="today-item flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors" data-search="Physics Concepts">
+                        <i class="fas fa-lightbulb text-yellow-500"></i>
+                        <span class="sidebar-text">Physics Concepts</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Searches -->
+            <div class="p-4 border-t border-gray-200">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 sidebar-text">Recent Searches</h3>
+                <div id="recent-searches" class="space-y-2">
+                    <!-- Recent searches will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex-1 flex flex-col">
+            <!-- Top Header -->
+            <header class="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-6 py-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Welcome back!</h1>
+                        <p class="text-gray-600">How can I help you today?</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="notifications-btn" class="p-2 text-gray-400 hover:text-gray-600 relative transition-colors">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-badge" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                        </button>
+                        <div class="relative">
+                            <button id="profile-btn" class="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg">
+                                <img id="header-avatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=32" 
+                                     alt="User" class="w-8 h-8 rounded-full">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </button>
+                            
+                            <!-- Profile Dropdown -->
+                            <div id="profile-dropdown" class="profile-dropdown absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                <div class="p-4 border-b border-gray-200">
+                                    <div class="flex items-center space-x-3">
+                                        <img id="dropdown-avatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=48" 
+                                             alt="User" class="w-12 h-12 rounded-full">
+                                        <div>
+                                            <p id="dropdown-name" class="font-medium text-gray-900">Loading...</p>
+                                            <p class="text-sm text-gray-500">Student at LeSuccess Academy</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="py-2">
+                                    <button class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                                        <i class="fas fa-user"></i>
+                                        <span>Profile</span>
+                                    </button>
+                                    <button class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                                        <i class="fas fa-cog"></i>
+                                        <span>Settings</span>
+                                    </button>
+                                    <button id="sign-out-btn" class="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Home Dashboard -->
+            <div id="home-dashboard" class="home-dashboard active flex-1 overflow-y-auto">
+                <div class="p-6 space-y-6">
+                    <!-- Welcome Section -->
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+                        <h2 class="text-3xl font-bold mb-2">Welcome back, <span id="dashboard-user-name">Student</span>!</h2>
+                        <p class="text-blue-100 text-lg">Continue your learning journey and achieve your goals</p>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="stat-card rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <i class="fas fa-book-open text-2xl opacity-80"></i>
+                                <span class="text-3xl font-bold">12</span>
+                            </div>
+                            <p class="text-sm opacity-90">Active Courses</p>
+                        </div>
+                        <div class="stat-card rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <i class="fas fa-trophy text-2xl opacity-80"></i>
+                                <span class="text-3xl font-bold">85%</span>
+                            </div>
+                            <p class="text-sm opacity-90">Completion Rate</p>
+                        </div>
+                        <div class="stat-card rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <i class="fas fa-fire text-2xl opacity-80"></i>
+                                <span class="text-3xl font-bold">7</span>
+                            </div>
+                            <p class="text-sm opacity-90">Day Streak</p>
+                        </div>
+                        <div class="stat-card rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <i class="fas fa-star text-2xl opacity-80"></i>
+                                <span class="text-3xl font-bold">24</span>
+                            </div>
+                            <p class="text-sm opacity-90">Achievements</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <button id="quick-ai-tutor" class="quick-action-btn bg-blue-50 hover:bg-blue-100 rounded-lg p-4 text-center transition-colors">
+                                <i class="fas fa-robot text-blue-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">AI Tutor</p>
+                            </button>
+                            <button id="quick-my-tasks" class="quick-action-btn bg-purple-50 hover:bg-purple-100 rounded-lg p-4 text-center transition-colors">
+                                <i class="fas fa-tasks text-purple-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">My Tasks</p>
+                            </button>
+                            <button id="quick-progress" class="quick-action-btn bg-green-50 hover:bg-green-100 rounded-lg p-4 text-center transition-colors">
+                                <i class="fas fa-chart-line text-green-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">Progress</p>
+                            </button>
+                            <button id="quick-certificates" class="quick-action-btn bg-orange-50 hover:bg-orange-100 rounded-lg p-4 text-center transition-colors">
+                                <i class="fas fa-certificate text-orange-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-gray-700">Certificates</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Continue Learning -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Continue Learning</h3>
+                            <a href="#" class="text-blue-600 hover:text-blue-700 text-sm font-medium">View All</a>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Course Card 1 -->
+                            <div class="course-card bg-white rounded-xl p-6 shadow-sm cursor-pointer">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-code text-blue-600 text-xl"></i>
+                                    </div>
+                                    <span class="text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">In Progress</span>
+                                </div>
+                                <h4 class="text-lg font-semibold text-gray-900 mb-2">Python Programming</h4>
+                                <p class="text-sm text-gray-600 mb-4">Master Python from basics to advanced concepts</p>
+                                <div class="mb-2">
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <span>Progress</span>
+                                        <span>65%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="progress-bar bg-blue-600 h-2 rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span><i class="fas fa-clock mr-1"></i> 12 hours left</span>
+                                    <span><i class="fas fa-users mr-1"></i> 2.5k students</span>
+                                </div>
+                            </div>
+
+                            <!-- Course Card 2 -->
+                            <div class="course-card bg-white rounded-xl p-6 shadow-sm cursor-pointer">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-brain text-purple-600 text-xl"></i>
+                                    </div>
+                                    <span class="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">New</span>
+                                </div>
+                                <h4 class="text-lg font-semibold text-gray-900 mb-2">Machine Learning Basics</h4>
+                                <p class="text-sm text-gray-600 mb-4">Introduction to AI and machine learning fundamentals</p>
+                                <div class="mb-2">
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <span>Progress</span>
+                                        <span>20%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="progress-bar bg-purple-600 h-2 rounded-full" style="width: 20%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span><i class="fas fa-clock mr-1"></i> 8 hours left</span>
+                                    <span><i class="fas fa-users mr-1"></i> 1.8k students</span>
+                                </div>
+                            </div>
+
+                            <!-- Course Card 3 -->
+                            <div class="course-card bg-white rounded-xl p-6 shadow-sm cursor-pointer">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-database text-green-600 text-xl"></i>
+                                    </div>
+                                    <span class="text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">In Progress</span>
+                                </div>
+                                <h4 class="text-lg font-semibold text-gray-900 mb-2">Data Science Fundamentals</h4>
+                                <p class="text-sm text-gray-600 mb-4">Learn data analysis, visualization, and statistics</p>
+                                <div class="mb-2">
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <span>Progress</span>
+                                        <span>45%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="progress-bar bg-green-600 h-2 rounded-full" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span><i class="fas fa-clock mr-1"></i> 15 hours left</span>
+                                    <span><i class="fas fa-users mr-1"></i> 3.2k students</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Learning Paths -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Recommended Learning Paths</h3>
+                            <a href="#" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Explore More</a>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="learning-path-card rounded-xl p-6 cursor-pointer hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900 mb-2">Full Stack Developer</h4>
+                                        <p class="text-sm text-gray-600">Master frontend and backend development</p>
+                                    </div>
+                                    <i class="fas fa-arrow-right text-blue-600"></i>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-600">
+                                    <span><i class="fas fa-book mr-1"></i> 8 Courses</span>
+                                    <span><i class="fas fa-clock mr-1"></i> 120 Hours</span>
+                                </div>
+                            </div>
+                            <div class="learning-path-card rounded-xl p-6 cursor-pointer hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900 mb-2">AI & Machine Learning</h4>
+                                        <p class="text-sm text-gray-600">Become an AI expert from scratch</p>
+                                    </div>
+                                    <i class="fas fa-arrow-right text-blue-600"></i>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-600">
+                                    <span><i class="fas fa-book mr-1"></i> 12 Courses</span>
+                                    <span><i class="fas fa-clock mr-1"></i> 200 Hours</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-check text-blue-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">Completed lesson: Python Variables</p>
+                                    <p class="text-xs text-gray-500">2 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-trophy text-green-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">Earned achievement: First Steps</p>
+                                    <p class="text-xs text-gray-500">1 day ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-book text-purple-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">Started new course: Machine Learning</p>
+                                    <p class="text-xs text-gray-500">2 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div id="chat-interface" class="chat-interface flex-1 flex flex-col">
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 chat-background">
+                    <div class="message text-center text-gray-500 py-8">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Welcome to LeSuccess Tutor!</h3>
+                            <p class="text-gray-600">Your personal AI mentor is ready to help you excel. Start a conversation to begin your learning journey.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Typing Indicator -->
+                <div id="typing-indicator" class="typing-indicator px-6 py-3 chat-background">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex space-x-2">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                        <span class="text-gray-600 text-sm font-medium">LeSuccess Mentor is typing...</span>
+                    </div>
+                </div>
+                
+                <!-- Message Input -->
+                <div class="bg-white border-t border-gray-200 p-4 shadow-lg">
+                    <form id="chat-form" class="flex items-center space-x-4">
+                        <button type="button" id="new-chat-input-btn" class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Start New Chat">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <div class="flex-1 relative">
+                            <input 
+                                type="text" 
+                                id="message-input" 
+                                placeholder="Ask or search for anything. Use @ to tag a file or collection." 
+                                class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                disabled
+                            >
+                            <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf,.doc,.docx,.txt">
+                            <button type="button" id="attach-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" title="Attach File">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                        </div>
+                        <button 
+                            type="submit" 
+                            id="send-btn"
+                            class="send-button text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled
+                        >
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Display Name Modal -->
+    <div id="display-name-modal" class="display-name-modal fixed inset-0 flex items-center justify-center z-50" style="display: none;">
+        <div class="display-name-content bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-circle text-blue-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Welcome to LeSuccess Tutor!</h2>
+                <p class="text-gray-600 mt-2">Let's personalize your profile</p>
+            </div>
+            <form id="display-name-form">
+                <div class="mb-6">
+                    <label for="display-name-input" class="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+                    <input 
+                        type="text" 
+                        id="display-name-input" 
+                        required 
+                        placeholder="Enter your name"
+                        maxlength="50"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                    <p class="text-xs text-gray-500 mt-2">This name will be displayed in your profile and chat</p>
+                </div>
+                <button 
+                    type="submit" 
+                    class="auth-button w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg font-medium"
+                >
+                    Continue
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div id="auth-modal" class="auth-modal-backdrop fixed inset-0 flex items-center justify-center z-50" style="display: none;">
+        <div class="auth-modal-content bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Welcome to LeSuccess Tutor</h2>
+                <p class="text-gray-600 mt-2">Sign in to start your learning journey</p>
+            </div>
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="email" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="password" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" id="signin-btn" 
+                            class="auth-button flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg font-medium">
+                        Sign In
+                    </button>
+                    <button type="button" id="signup-btn" 
+                            class="auth-button flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg font-medium">
+                        Sign Up
+                    </button>
+                </div>
+            </form>
+            <div id="auth-error" class="mt-4 text-red-600 text-sm hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+        apiKey: "AIzaSyA0gFhJB1mycbRJOSbv4KLR3fc0xS70J1I",
+        authDomain: "harishproject-b43d4.firebaseapp.com",
+        projectId: "harishproject-b43d4",
+        storageBucket: "harishproject-b43d4.firebasestorage.app",
+        messagingSenderId: "73895628395",
+        appId: "1:73895628395:web:3a6903bf475154755beb2e",
+        measurementId: "G-WNJV8PSK2M"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // DOM elements
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatForm = document.getElementById('chat-form');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const authModal = document.getElementById('auth-modal');
+        const authForm = document.getElementById('auth-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const signinBtn = document.getElementById('signin-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const authError = document.getElementById('auth-error');
+        
+        // New UI elements
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const profileBtn = document.getElementById('profile-btn');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const userName = document.getElementById('user-name');
+        const userAvatar = document.getElementById('user-avatar');
+        const headerAvatar = document.getElementById('header-avatar');
+        const dropdownName = document.getElementById('dropdown-name');
+        const dropdownAvatar = document.getElementById('dropdown-avatar');
+        const displayNameModal = document.getElementById('display-name-modal');
+        const displayNameForm = document.getElementById('display-name-form');
+        const displayNameInput = document.getElementById('display-name-input');
+        const toastContainer = document.getElementById('toast-container');
+
+        // Toast notification function
+        function showToast(message, type = 'error') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+            toast.innerHTML = `
+                <i class="fas ${icon} toast-icon"></i>
+                <span>${message}</span>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 400);
+            }, 5000);
+        }
+
+        // Format Firebase error messages
+        function formatAuthError(error) {
+            const errorCode = error.code;
+            const errorMessages = {
+                'auth/wrong-password': 'Incorrect password. Please try again.',
+                'auth/user-not-found': 'No account found with this email.',
+                'auth/email-already-in-use': 'This email is already registered.',
+                'auth/weak-password': 'Password should be at least 6 characters.',
+                'auth/invalid-email': 'Please enter a valid email address.',
+                'auth/network-request-failed': 'Network error. Please check your connection.',
+                'auth/too-many-requests': 'Too many failed attempts. Please try again later.'
+            };
+            
+            return errorMessages[errorCode] || error.message || 'An error occurred. Please try again.';
+        }
+
+        // Local Storage functions for chat history
+        function saveChatHistory(userId, messages) {
+            try {
+                const key = `chat_history_${userId}`;
+                localStorage.setItem(key, JSON.stringify(messages));
+            } catch (error) {
+                console.error('Error saving chat history:', error);
+            }
+        }
+
+        function loadChatHistory(userId) {
+            try {
+                const key = `chat_history_${userId}`;
+                const saved = localStorage.getItem(key);
+                return saved ? JSON.parse(saved) : null;
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                return null;
+            }
+        }
+
+        function clearChatHistory(userId) {
+            try {
+                const key = `chat_history_${userId}`;
+                localStorage.removeItem(key);
+            } catch (error) {
+                console.error('Error clearing chat history:', error);
+            }
+        }
+
+        // Store conversation history
+        let conversationHistory = [];
+
+        // Authentication state listener
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is signed in
+                const displayName = user.displayName || user.email.split('@')[0];
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=667eea&color=fff&size=40`;
+                
+                // Update user info in sidebar
+                userName.textContent = displayName;
+                userAvatar.src = avatarUrl;
+                headerAvatar.src = avatarUrl.replace('size=40', 'size=32');
+                dropdownName.textContent = displayName;
+                dropdownAvatar.src = avatarUrl.replace('size=40', 'size=48');
+                
+                // Update dashboard user name
+                if (dashboardUserName) {
+                    dashboardUserName.textContent = displayName;
+                }
+                
+                // Enable chat functionality
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.placeholder = "Ask or search for anything. Use @ to tag a file or collection.";
+                authModal.style.display = 'none';
+                displayNameModal.style.display = 'none';
+                
+                // Check backend health
+                checkBackendHealth().then(isHealthy => {
+                    if (!isHealthy) {
+                        showToast('Warning: Backend server may not be running. Please ensure the backend is started on http://127.0.0.1:5001', 'error');
+                    }
+                });
+                
+                // Show home dashboard by default
+                switchToHome();
+                
+                // Load chat history from local storage
+                const savedHistory = loadChatHistory(user.uid);
+                conversationHistory = [];
+                
+                if (savedHistory && savedHistory.length > 0) {
+                    // Render saved chat history
+                    chatMessages.innerHTML = '';
+                    chatMessages.className = 'flex-1 overflow-y-auto p-6 space-y-4 chat-background';
+                    
+                    savedHistory.forEach(msg => {
+                        addMessage(msg.content, msg.isUser, false); // false = don't save to history yet
+                    });
+                    
+                    conversationHistory = savedHistory;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    // Show welcome message if no history
+                chatMessages.innerHTML = `
+                    <div class="message text-center text-gray-500 py-8">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Welcome to LeSuccess Tutor!</h3>
+                            <p class="text-gray-600">Your personal AI mentor is ready to help you excel. Start a conversation to begin your learning journey.</p>
+                        </div>
+                    </div>
+                `;
+                    chatMessages.className = 'flex-1 overflow-y-auto p-6 space-y-4 chat-background';
+                }
+            } else {
+                // User is signed out
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                messageInput.placeholder = "Please sign in to start chatting";
+                authModal.style.display = 'flex';
+                displayNameModal.style.display = 'none';
+                conversationHistory = [];
+                
+                // Clear chat messages and show sign-in prompt
+                chatMessages.innerHTML = `
+                    <div class="message text-center text-gray-500 py-8">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Welcome to LeSuccess Tutor!</h3>
+                            <p class="text-gray-600">Your personal AI mentor is ready to help you excel. Please sign in to start your learning journey.</p>
+                        </div>
+                    </div>
+                `;
+                chatMessages.className = 'flex-1 overflow-y-auto p-6 space-y-4 chat-background';
+            }
+        });
+
+        // Sign out functionality
+        signOutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Sidebar toggle functionality
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right text-gray-500';
+            } else {
+                icon.className = 'fas fa-chevron-left text-gray-500';
+            }
+        });
+
+        // Profile dropdown functionality
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('show');
+        });
+
+        // Close profile dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+                profileDropdown.classList.remove('show');
+            }
+        });
+
+        // Store recent searches in local storage
+        function getRecentSearches() {
+            try {
+                const saved = localStorage.getItem('recent_searches');
+                return saved ? JSON.parse(saved) : [];
+            } catch (error) {
+                console.error('Error loading recent searches:', error);
+                return [];
+            }
+        }
+
+        function saveRecentSearch(searchTerm) {
+            try {
+                let searches = getRecentSearches();
+                // Remove if already exists
+                searches = searches.filter(s => s !== searchTerm);
+                // Add to beginning
+                searches.unshift(searchTerm);
+                // Keep only last 10
+                searches = searches.slice(0, 10);
+                localStorage.setItem('recent_searches', JSON.stringify(searches));
+                renderRecentSearches();
+            } catch (error) {
+                console.error('Error saving recent search:', error);
+            }
+        }
+
+        function renderRecentSearches() {
+            const recentSearchesContainer = document.getElementById('recent-searches');
+            const searches = getRecentSearches();
+            
+            if (searches.length === 0) {
+                recentSearchesContainer.innerHTML = '<p class="text-xs text-gray-400 px-3">No recent searches</p>';
+                return;
+            }
+            
+            recentSearchesContainer.innerHTML = searches.map(search => `
+                <div class="recent-search-item flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors" data-search="${search}">
+                    <i class="fas fa-search text-gray-400"></i>
+                    <span class="sidebar-text">${search}</span>
+                </div>
+            `).join('');
+            
+            // Add click handlers
+            recentSearchesContainer.querySelectorAll('.recent-search-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const searchTerm = item.getAttribute('data-search');
+                    handleSearchClick(searchTerm);
+                });
+            });
+        }
+
+        function handleSearchClick(searchTerm) {
+            // Switch to chat interface
+            switchToChat();
+            // Clear chat and start new conversation with search term
+            chatMessages.innerHTML = '';
+            messageInput.value = searchTerm;
+            messageInput.focus();
+            showToast(`Searching for: ${searchTerm}`, 'success');
+        }
+
+        // Notifications button functionality
+        const notificationsBtn = document.getElementById('notifications-btn');
+        const notificationBadge = document.getElementById('notification-badge');
+        
+        notificationsBtn.addEventListener('click', () => {
+            showToast('You have no new notifications', 'success');
+            notificationBadge.classList.add('hidden');
+        });
+
+        // Get dashboard and chat interface elements
+        const homeDashboard = document.getElementById('home-dashboard');
+        const chatInterface = document.getElementById('chat-interface');
+        const homeBtn = document.getElementById('home-btn');
+        const dashboardUserName = document.getElementById('dashboard-user-name');
+
+        // Initialize views - ensure chat interface is hidden on page load
+        if (chatInterface) {
+            chatInterface.classList.remove('active');
+        }
+        if (homeDashboard) {
+            homeDashboard.classList.add('active');
+        }
+
+        // Function to switch views
+        function switchToHome() {
+            homeDashboard.classList.add('active');
+            chatInterface.classList.remove('active');
+            // Update navigation highlighting
+            homeBtn.className = 'nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors w-full text-left';
+            newChatBtn.className = 'nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg w-full text-left transition-colors';
+        }
+
+        function switchToChat() {
+            homeDashboard.classList.remove('active');
+            chatInterface.classList.add('active');
+            // Update navigation highlighting
+            homeBtn.className = 'nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg w-full text-left transition-colors';
+            newChatBtn.className = 'nav-item flex items-center space-x-3 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors w-full text-left';
+        }
+
+        // Home button functionality
+        homeBtn.addEventListener('click', () => {
+            switchToHome();
+        });
+
+        // New Chat button functionality
+        const newChatBtn = document.getElementById('new-chat-btn');
+        newChatBtn.addEventListener('click', () => {
+            switchToChat();
+            
+            // Clear chat messages
+            chatMessages.innerHTML = `
+                <div class="message text-center text-gray-500 py-8">
+                    <div class="max-w-md mx-auto">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">New Chat Started</h3>
+                        <p class="text-gray-600">Start a new conversation with your AI mentor.</p>
+                    </div>
+                </div>
+            `;
+            chatMessages.className = 'flex-1 overflow-y-auto p-6 space-y-4 chat-background';
+            
+            // Clear conversation history
+            const user = auth.currentUser;
+            if (user) {
+                conversationHistory = [];
+                saveChatHistory(user.uid, conversationHistory);
+            }
+            
+            // Focus on input
+            messageInput.focus();
+        });
+
+        // My Tasks button functionality
+        const myTasksBtn = document.getElementById('my-tasks-btn');
+        myTasksBtn.addEventListener('click', () => {
+            showToast('My Tasks feature coming soon!', 'success');
+            // You can implement task management UI here
+        });
+
+        // Quick action buttons
+        const quickAiTutor = document.getElementById('quick-ai-tutor');
+        if (quickAiTutor) {
+            quickAiTutor.addEventListener('click', () => {
+                switchToChat();
+            });
+        }
+
+        const quickMyTasks = document.getElementById('quick-my-tasks');
+        if (quickMyTasks) {
+            quickMyTasks.addEventListener('click', () => {
+                showToast('My Tasks feature coming soon!', 'success');
+            });
+        }
+
+        const quickProgress = document.getElementById('quick-progress');
+        if (quickProgress) {
+            quickProgress.addEventListener('click', () => {
+                showToast('Progress tracking coming soon!', 'success');
+            });
+        }
+
+        const quickCertificates = document.getElementById('quick-certificates');
+        if (quickCertificates) {
+            quickCertificates.addEventListener('click', () => {
+                showToast('Certificates feature coming soon!', 'success');
+            });
+        }
+
+        // Initialize recent searches on load
+        renderRecentSearches();
+
+        // Handle Today section item clicks
+        document.querySelectorAll('.today-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const searchTerm = item.getAttribute('data-search');
+                handleSearchClick(searchTerm);
+            });
+        });
+
+        // Authentication form handling
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                authError.classList.add('hidden');
+            } catch (error) {
+                const errorMessage = formatAuthError(error);
+                showToast(errorMessage, 'error');
+                authError.classList.add('hidden');
+            }
+        });
+
+        // Sign up functionality
+        signupBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showToast('Please enter both email and password', 'error');
+                return;
+            }
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                authError.classList.add('hidden');
+                
+                // Show display name prompt after successful sign-up
+                if (userCredential.user && !userCredential.user.displayName) {
+                    displayNameModal.style.display = 'flex';
+                    displayNameInput.focus();
+                }
+            } catch (error) {
+                const errorMessage = formatAuthError(error);
+                showToast(errorMessage, 'error');
+                authError.classList.add('hidden');
+            }
+        });
+
+        // Display name form handling
+        displayNameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const displayName = displayNameInput.value.trim();
+            
+            if (!displayName) {
+                showToast('Please enter a display name', 'error');
+                return;
+            }
+            
+            const user = auth.currentUser;
+            if (!user) {
+                showToast('User not found. Please sign in again.', 'error');
+                return;
+            }
+            
+            try {
+                await user.updateProfile({
+                    displayName: displayName
+                });
+                
+                // Update UI immediately
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=667eea&color=fff&size=40`;
+                userName.textContent = displayName;
+                userAvatar.src = avatarUrl;
+                headerAvatar.src = avatarUrl.replace('size=40', 'size=32');
+                dropdownName.textContent = displayName;
+                dropdownAvatar.src = avatarUrl.replace('size=40', 'size=48');
+                
+                displayNameModal.style.display = 'none';
+                displayNameInput.value = '';
+                showToast('Profile updated successfully!', 'success');
+            } catch (error) {
+                showToast('Failed to update profile. Please try again.', 'error');
+            }
+        });
+
+        // Add message to chat
+        function addMessage(content, isUser = false, saveToHistory = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = `chat-bubble px-4 py-3 ${
+                isUser 
+                    ? 'user-message' 
+                    : 'ai-message'
+            }`;
+            
+            // Add avatar for AI messages
+            if (!isUser) {
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'flex items-start space-x-3';
+                
+                const avatar = document.createElement('div');
+                avatar.className = 'w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0';
+                avatar.innerHTML = '<i class="fas fa-graduation-cap text-blue-600 text-sm"></i>';
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'flex-1';
+                textDiv.textContent = content;
+                
+                avatarDiv.appendChild(avatar);
+                avatarDiv.appendChild(textDiv);
+                messageContent.appendChild(avatarDiv);
+            } else {
+                messageContent.textContent = content;
+            }
+            
+            messageDiv.appendChild(messageContent);
+            
+            // Remove welcome message if it exists
+            const welcomeMessage = chatMessages.querySelector('.text-center');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Save to conversation history
+            if (saveToHistory) {
+                const user = auth.currentUser;
+                if (user) {
+                    conversationHistory.push({
+                        content: content,
+                        isUser: isUser,
+                        timestamp: Date.now()
+                    });
+                    saveChatHistory(user.uid, conversationHistory);
+                }
+            }
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            typingIndicator.classList.add('show');
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            typingIndicator.classList.remove('show');
+        }
+
+        // Check backend health
+        async function checkBackendHealth() {
+            try {
+                const response = await fetch('http://127.0.0.1:5001/api/health', {
+                    method: 'GET',
+                    timeout: 5000
+                }).catch(() => {
+                    return null;
+                });
+                
+                if (response && response.ok) {
+                    const data = await response.json();
+                    console.log('Backend health check:', data);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Backend health check failed:', error);
+                return false;
+            }
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Please sign in to send messages');
+                return;
+            }
+
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Save to recent searches if it looks like a search query
+            if (message.length > 3 && !message.startsWith('@')) {
+                saveRecentSearch(message);
+            }
+
+            // Add user message to chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Get user's ID token
+                const token = await user.getIdToken();
+                
+                // Make API request to backend
+                const response = await fetch('http://127.0.0.1:5001/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationId: 'aptitude_test_preparation'
+                    })
+                }).catch(fetchError => {
+                    // Handle network errors
+                    console.error('Network error:', fetchError);
+                    throw new Error('Failed to connect to server. Please make sure the backend server is running on http://127.0.0.1:5001');
+                });
+
+                if (!response.ok) {
+                    // Try to parse error response
+                    let errorMessage = 'Something went wrong';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorData.details || errorMessage;
+                    } catch (e) {
+                        errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+
+                if (data.reply) {
+                    // Add AI response to chat
+                    addMessage(data.reply);
+                } else {
+                    // Handle error
+                    addMessage(`Error: ${data.error || 'No response from server'}`);
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                const errorMsg = error.message || 'Failed to fetch response';
+                addMessage(`Error: ${errorMsg}`);
+                showToast(errorMsg, 'error');
+            } finally {
+                // Hide typing indicator
+                hideTypingIndicator();
+            }
+        });
+
+        // Allow sending message with Enter key
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // New Chat button in input area functionality
+        const newChatInputBtn = document.getElementById('new-chat-input-btn');
+        if (newChatInputBtn) {
+            newChatInputBtn.addEventListener('click', () => {
+                // Clear chat messages
+                chatMessages.innerHTML = `
+                    <div class="message text-center text-gray-500 py-8">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">New Chat Started</h3>
+                            <p class="text-gray-600">Start a new conversation with your AI mentor.</p>
+                        </div>
+                    </div>
+                `;
+                chatMessages.className = 'flex-1 overflow-y-auto p-6 space-y-4 chat-background';
+                
+                // Clear conversation history
+                const user = auth.currentUser;
+                if (user) {
+                    conversationHistory = [];
+                    saveChatHistory(user.uid, conversationHistory);
+                }
+                
+                // Clear input and focus
+                messageInput.value = '';
+                messageInput.focus();
+                showToast('New chat started', 'success');
+            });
+        }
+
+        // File attachment button functionality
+        const attachBtn = document.getElementById('attach-btn');
+        const fileInput = document.getElementById('file-input');
+        
+        if (attachBtn && fileInput) {
+            attachBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size (limit to 10MB)
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                        showToast('File size exceeds 10MB limit', 'error');
+                        fileInput.value = '';
+                        return;
+                    }
+                    
+                    // Show file info
+                    const fileName = file.name;
+                    const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+                    showToast(`File attached: ${fileName} (${fileSize})`, 'success');
+                    
+                    // You can add file upload functionality here
+                    // For now, we'll just show a message that file is attached
+                    // In a full implementation, you would upload the file to storage
+                    // and include it in the message
+                    
+                    // Optionally, you can add the file name to the message input
+                    // messageInput.value = `@${fileName} ` + messageInput.value;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
