@@ -44,17 +44,6 @@
 
 ### Update .env file (create in project root):
 ```env
-# Gemini AI Configuration
-GEMINI_API_KEY=AIzaSyBOW010ZZCGoWybaiQ2qkuD3d3IonsEo04
-
-# Firebase Configuration (your actual values)
-FIREBASE_PROJECT_ID=harishproject-b43d4
-FIREBASE_API_KEY=AIzaSyA0gFhJB1mycbRJOSbv4KLR3fc0xS70J1I
-FIREBASE_AUTH_DOMAIN=harishproject-b43d4.firebaseapp.com
-FIREBASE_STORAGE_BUCKET=harishproject-b43d4.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=73895628395
-FIREBASE_APP_ID=1:73895628395:web:3a6903bf475154755beb2e
-FIREBASE_MEASUREMENT_ID=G-WNJV8PSK2M
 
 # Flask Configuration
 FLASK_ENV=development
@@ -63,9 +52,6 @@ FLASK_DEBUG=True
 
 ### Update chat.html Firebase config:
 ✅ **COMPLETED** - Your Firebase configuration has been updated in `templates/chat.html` with the correct values:
-- Project ID: `harishproject-b43d4`
-- API Key: `AIzaSyA0gFhJB1mycbRJOSbv4KLR3fc0xS70J1I`
-- Auth Domain: `harishproject-b43d4.firebaseapp.com`
 
 ## Step 7: Install Dependencies
 
