@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - LeSuccess Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+       body {
+          font-family: 'Inter', sans-serif;
+          overflow-x: hidden;
+       }
+       #global-3d-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+       }
+       .page-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+       }
+       .hover-scale {
+            transition: transform 0.3s ease;
+       }
+       .hover-scale:hover {
+            transform: scale(1.05);
+       }
+       .animate-fadeInUp {
+            animation: fadeInUp 0.8s ease-out forwards;
+       }
+       @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+       }
+       .video-play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            transition: all 0.3s ease;
+            opacity: 0.8;
+       }
+       .group:hover .video-play-icon {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 1;
+       }
+       
+       /* GSAP Animation Classes - Start visible, then hide for animation */
+       .gsap-fade-up {
+            opacity: 1;
+            transform: translateY(0);
+       }
+       .gsap-fade-in {
+            opacity: 1;
+       }
+       .gsap-scale-in {
+            opacity: 1;
+            transform: scale(1);
+       }
+       .gsap-slide-left {
+            opacity: 1;
+            transform: translateX(0);
+       }
+       .gsap-slide-right {
+            opacity: 1;
+            transform: translateX(0);
+       }
+       
+       /* Hide elements for animation */
+       .gsap-fade-up.gsap-ready {
+            opacity: 0;
+            transform: translateY(50px);
+       }
+       .gsap-fade-in.gsap-ready {
+            opacity: 0;
+       }
+       .gsap-scale-in.gsap-ready {
+            opacity: 0;
+            transform: scale(0.8);
+       }
+       .gsap-slide-left.gsap-ready {
+            opacity: 0;
+            transform: translateX(-50px);
+       }
+       .gsap-slide-right.gsap-ready {
+            opacity: 0;
+            transform: translateX(50px);
+       }
+       
+       /* Video Player Styles */
+       .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+       }
+       .video-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+       }
+       .video-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: none;
+       }
+       .video-iframe.playing {
+            opacity: 1;
+       }
+       .video-thumbnail.hidden {
+            opacity: 0;
+       }
+       
+       /* Enhanced Video Player Styles */
+       .video-container:hover .video-play-icon {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 1;
+       }
+       
+       .video-play-trigger {
+            cursor: pointer;
+            transition: all 0.3s ease;
+       }
+       
+       .video-play-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(100, 255, 218, 0.3);
+       }
+       
+       .video-iframe {
+            border-radius: 0.5rem;
+       }
+       
+       .video-container.playing {
+            box-shadow: 0 0 30px rgba(100, 255, 218, 0.3);
+       }
+       
+       /* --- Menu Animation Styles from index.html --- */
+       #nav-menu {
+           transform-origin: top;
+           transform: scaleY(0.94) translateY(-10px);
+           opacity: 0;
+           transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+           pointer-events: none;
+       }
+       #nav-menu.is-visible {
+           opacity: 1;
+           transform: scaleY(1) translateY(0);
+           box-shadow: 0 24px 50px rgba(7, 18, 35, 0.55);
+           pointer-events: auto;
+       }
+       .nav-mobile-fader {
+           position: fixed;
+           inset: 0;
+           width: 100%;
+           height: 100vh;
+           z-index: 40;
+           display: none;
+           backdrop-filter: none;
+           -webkit-backdrop-filter: none;
+           background: rgba(10, 25, 47, 0.53);
+       }
+       .nav-mobile-fader.active { 
+           display: block;
+           backdrop-filter: blur(4px);
+           -webkit-backdrop-filter: blur(4px);
+       }
+    </style>
+</head>
+<body class="bg-[#0A192F] text-[#CCD6F6] min-h-screen">
+    <canvas id="global-3d-canvas"></canvas>
+    <div class="page-wrapper">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-[#0A192F] border-b border-slate-800 font-['Inter',_sans-serif]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+          <!-- Logo -->
+          <a href="{{ url_for('index') }}" class="text-cyan-300 text-xl sm:text-2xl font-bold tracking-tight hover:text-cyan-400 transition-colors">
+            LeSuccess Academy
+          </a>
+
+          <!-- Desktop Links -->
+          <div class="hidden md:flex items-center gap-6">
+            <a href="{{ url_for('index') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Home</a>
+            <a href="{{ url_for('index') }}#how-it-works" class="text-slate-300 hover:text-cyan-400 transition-colors">How It Works</a>
+            <a href="{{ url_for('index') }}#why-choose-us" class="text-slate-300 hover:text-cyan-400 transition-colors">Why Choose Us</a>
+            <a href="{{ url_for('courses') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Courses</a>
+            <a href="{{ url_for('about') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">About</a>
+            <a href="{{ url_for('blog') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Blog</a>
+            <a href="{{ url_for('contact') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">Contact</a>
+            <a href="{{ url_for('chat') }}" class="text-slate-300 hover:text-cyan-400 transition-colors">AI Tutor</a>
+            <a href="{{ url_for('courses') }}" class="inline-flex items-center rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-[#0A192F] shadow-sm hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]">
+              Get Started
+            </a>
+          </div>
+
+          <!-- Mobile Hamburger -->
+          <button id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-300 hover:text-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
+            <svg id="icon-open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/>
+            </svg>
+            <svg id="icon-close" class="h-6 w-6 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown -->
+      <div id="nav-menu" class="md:hidden hidden origin-top bg-[#0A192F] border-t border-slate-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div class="flex flex-col gap-1">
+            <a href="{{ url_for('index') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Home</a>
+            <a href="{{ url_for('index') }}#how-it-works" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">How It Works</a>
+            <a href="{{ url_for('index') }}#why-choose-us" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Why Choose Us</a>
+            <a href="{{ url_for('courses') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Courses</a>
+            <a href="{{ url_for('about') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">About</a>
+            <a href="{{ url_for('blog') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Blog</a>
+            <a href="{{ url_for('contact') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">Contact</a>
+            <a href="{{ url_for('chat') }}" class="block rounded-md px-3 py-2 text-slate-200 hover:text-cyan-400 transition-colors">AI Tutor</a>
+            <a href="{{ url_for('courses') }}" class="mt-2 inline-flex items-center justify-center rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-[#0A192F] hover:bg-cyan-400 transition-colors">
+              Get Started
+            </a>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function(){
+          const toggleBtn = document.getElementById('nav-toggle');
+          const menu = document.getElementById('nav-menu');
+          const fader = document.querySelector('.nav-mobile-fader');
+          let isAnimating = false;
+
+          if (!toggleBtn || !menu) return;
+
+          const body = document.body;
+          const iconOpen = document.getElementById('icon-open');
+          const iconClose = document.getElementById('icon-close');
+
+          function openMenu() {
+            if (isAnimating || menu.classList.contains('is-visible')) return;
+            isAnimating = true;
+            menu.classList.remove('hidden');
+            requestAnimationFrame(() => {
+              menu.classList.add('is-visible');
+              toggleBtn.setAttribute('aria-expanded', 'true');
+              body.classList.add('nav-open');
+              if (fader) fader.classList.add('active');
+              if (iconOpen) iconOpen.classList.add('hidden');
+              if (iconClose) iconClose.classList.remove('hidden');
+            });
+            const onEnd = () => { isAnimating = false; menu.removeEventListener('transitionend', onEnd); };
+            menu.addEventListener('transitionend', onEnd);
+          }
+
+          function closeMenu() {
+            if (isAnimating || !menu.classList.contains('is-visible')) return;
+            isAnimating = true;
+            menu.classList.remove('is-visible');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            body.classList.remove('nav-open');
+            if (fader) fader.classList.remove('active');
+            if (iconOpen) iconOpen.classList.remove('hidden');
+            if (iconClose) iconClose.classList.add('hidden');
+            const onEnd = () => {
+              menu.classList.add('hidden');
+              isAnimating = false;
+              menu.removeEventListener('transitionend', onEnd);
+            };
+            menu.addEventListener('transitionend', onEnd);
+          }
+
+          function toggleMenu() {
+            if (menu.classList.contains('is-visible')) {
+              closeMenu();
+            } else {
+              openMenu();
+            }
+          }
+
+          toggleBtn.addEventListener('click', toggleMenu);
+
+          menu.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => closeMenu());
+          });
+
+          if (fader) {
+            fader.addEventListener('click', closeMenu);
+          }
+
+          window.addEventListener('resize', () => {
+            if (window.matchMedia('(min-width: 768px)').matches) {
+              closeMenu();
+            }
+          });
+        })();
+      </script>
+    </nav>
+    <div class="nav-mobile-fader"></div>
+
+    <section class="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h1 class="text-5xl sm:text-6xl font-extrabold text-slate-100 leading-tight mb-4 gsap-fade-up" id="hero-title">
+                    The <span class="text-[#64FFDA]">LeSuccess</span> Insights Hub
+                </h1>
+                <p class="text-lg text-slate-400 max-w-3xl mx-auto gsap-fade-up" id="hero-subtitle">
+                    Your launchpad for career success. Watch expert sessions, read insider tips, and get ready to land your dream job.
+                </p>
+            </div>
+
+            <div class="bg-slate-800/50 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-slate-700 grid lg:grid-cols-2 gap-8 items-center group hover-scale gsap-slide-left" id="featured-video-card">
+                <div class="relative rounded-lg overflow-hidden aspect-video video-container" data-video-id="TOlL02slaag">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1632&q=80" alt="Video thumbnail of a professional meeting" class="video-thumbnail w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/40"></div>
+                    <div class="video-play-icon">
+                        <div class="w-20 h-20 bg-[#64FFDA]/80 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-white/50 cursor-pointer">
+                            <svg class="w-10 h-10 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+                <div class="flex flex-col gsap-slide-right" id="featured-card-text">
+                    <span class="text-sm font-semibold text-[#64FFDA] uppercase tracking-wider mb-2">Featured Video</span>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-slate-100 mb-4 group-hover:text-cyan-300 transition-colors">
+                        Master Your Career: Complete Success Guide
+                    </h2>
+                    <p class="text-slate-400 mb-6 leading-relaxed">
+                        Discover the proven strategies and insider tips that have helped thousands of professionals land their dream jobs. Watch this comprehensive guide to career success and transform your professional journey.
+                    </p>
+                    <button class="inline-flex items-center justify-center w-full sm:w-auto rounded-md bg-cyan-500 px-6 py-3 text-base font-semibold text-[#0A192F] shadow-lg hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F] transition-all duration-300 transform hover:-translate-y-1 video-play-trigger">
+                        Watch Now
+                        <svg class="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold text-slate-100 text-center mb-12 gsap-fade-up" id="blog-title">Latest Articles & Videos</h2>
+            
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-12 gsap-fade-up" id="category-filters">
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button class="category-btn active bg-[#64FFDA] text-[#0A192F] px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover-scale" data-category="all">All Posts</button>
+                    <button class="category-btn bg-white/10 text-[#E6F1FF] px-6 py-3 rounded-lg font-semibold hover:bg-[#64FFDA] hover:text-[#0A192F] transition-all duration-300 hover-scale" data-category="interview-prep">Interview Prep</button>
+                    <button class="category-btn bg-white/10 text-[#E6F1FF] px-6 py-3 rounded-lg font-semibold hover:bg-[#64FFDA] hover:text-[#0A192F] transition-all duration-300 hover-scale" data-category="resume-building">Resume Building</button>
+                    <button class="category-btn bg-white/10 text-[#E6F1FF] px-6 py-3 rounded-lg font-semibold hover:bg-[#64FFDA] hover:text-[#0A192F] transition-all duration-300 hover-scale" data-category="tech-skills">Tech Skills</button>
+                    <button class="category-btn bg-white/10 text-[#E6F1FF] px-6 py-3 rounded-lg font-semibold hover:bg-[#64FFDA] hover:text-[#0A192F] transition-all duration-300 hover-scale" data-category="career-growth">Career Growth</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="blog-grid">
+                
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="interview-prep">
+                    <div class="relative h-56 video-container" data-video-id="jNQXAC9IVRw">
+                        <img src="https://images.unsplash.com/photo-1573496130407-57329f01f769?auto=format&fit=crop&w=800&q=60" class="video-thumbnail w-full h-full object-cover" alt="Technical interview session">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="video-play-icon">
+                            <div class="w-14 h-14 bg-white/80 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer"><svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-sm font-medium rounded-full mb-4 inline-block">Interview Prep</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">Acing the Technical Interview: Live Mock Session</h2>
+                        <a href="#" class="inline-flex items-center text-[#64FFDA] font-semibold">Watch Now <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                    </div>
+                </article>
+
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="resume-building">
+                    <div class="relative h-56">
+                        <img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=60" class="w-full h-full object-cover" alt="A well-structured resume">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="bg-white/90 rounded-full p-4 cursor-pointer article-read-trigger">
+                                <svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm font-medium rounded-full mb-4 inline-block">Resume Building</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">The 2025 Resume Masterclass: Beating the ATS</h2>
+                        <button class="inline-flex items-center text-[#64FFDA] font-semibold article-read-trigger">Read More <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                    </div>
+                </article>
+
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="tech-skills">
+                    <div class="relative h-56 video-container" data-video-id="kqtD5dpn9C8">
+                        <img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=800&q=60" class="video-thumbnail w-full h-full object-cover" alt="Code on a screen">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="video-play-icon">
+                            <div class="w-14 h-14 bg-white/80 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer"><svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-green-500/20 text-green-300 text-sm font-medium rounded-full mb-4 inline-block">Tech Skills</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">Python for Data Science: A 60-Minute Crash Course</h2>
+                        <a href="#" class="inline-flex items-center text-[#64FFDA] font-semibold">Watch Now <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                    </div>
+                </article>
+
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="career-growth">
+                    <div class="relative h-56 video-container" data-video-id="dQw4w9WgXcQ">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=60" class="video-thumbnail w-full h-full object-cover" alt="Career growth and networking">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="video-play-icon">
+                            <div class="w-14 h-14 bg-white/80 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer"><svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-orange-500/20 text-orange-300 text-sm font-medium rounded-full mb-4 inline-block">Career Growth</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">Networking Strategies That Actually Work</h2>
+                        <a href="#" class="inline-flex items-center text-[#64FFDA] font-semibold">Watch Now <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                    </div>
+                </article>
+
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="interview-prep">
+                    <div class="relative h-56 video-container" data-video-id="9bZkp7q19f0">
+                        <img src="https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=800&q=60" class="video-thumbnail w-full h-full object-cover" alt="Mock interview session">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="video-play-icon">
+                            <div class="w-14 h-14 bg-white/80 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer"><svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-sm font-medium rounded-full mb-4 inline-block">Interview Prep</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">Behavioral Questions Masterclass</h2>
+                        <a href="#" class="inline-flex items-center text-[#64FFDA] font-semibold">Watch Now <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                    </div>
+                </article>
+
+                <article class="blog-card bg-slate-800/50 backdrop-blur-lg rounded-2xl overflow-hidden border border-slate-700 hover:border-[#64FFDA]/40 transition-all duration-300 group gsap-fade-up" data-category="tech-skills">
+                    <div class="relative h-56 video-container" data-video-id="M7lc1UVf-VE">
+                        <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=60" class="video-thumbnail w-full h-full object-cover" alt="JavaScript coding">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="video-play-icon">
+                            <div class="w-14 h-14 bg-white/80 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer"><svg class="w-8 h-8 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-6">
+                        <span class="px-3 py-1 bg-green-500/20 text-green-300 text-sm font-medium rounded-full mb-4 inline-block">Tech Skills</span>
+                        <h2 class="text-xl font-bold text-slate-100 mb-3 group-hover:text-[#64FFDA] transition-colors">JavaScript Fundamentals for Beginners</h2>
+                        <a href="#" class="inline-flex items-center text-[#64FFDA] font-semibold">Watch Now <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                    </div>
+                </article>
+                 </div>
+        </div>
+    </section>
+
+    <section class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto text-center">
+            <h2 class="text-4xl font-bold text-slate-100 mb-4 gsap-fade-up" id="success-stories-title">Success Stories</h2>
+            <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-12 gsap-fade-up" id="success-stories-subtitle">Don't just take our word for it. Watch the journey of our students who transformed their careers with LeSuccess Academy.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="success-stories-grid">
+                <div class="block relative rounded-xl overflow-hidden group hover-scale gsap-scale-in success-story-card">
+                    <div class="relative h-96 video-container" data-video-id="dQw4w9WgXcQ">
+                        <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=60" alt="Alumni portrait" class="video-thumbnail w-full h-96 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                        <div class="video-play-icon opacity-100 mb-4">
+                            <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer">
+                                <svg class="w-7 h-7 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="absolute inset-0 flex flex-col justify-end p-6 pointer-events-none">
+                        <blockquote class="text-left">
+                            <p class="text-xl font-semibold text-white">"The mock interviews were a game-changer. I walked into my Amazon interview with total confidence."</p>
+                            <cite class="mt-2 block text-slate-300 not-italic">- Rahul Verma, SDE at Amazon</cite>
+                        </blockquote>
+                    </div>
+                    </div>
+                </div>
+                 <div class="block relative rounded-xl overflow-hidden group hover-scale gsap-scale-in success-story-card">
+                    <div class="relative h-96 video-container" data-video-id="9bZkp7q19f0">
+                        <img src="https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?auto=format&fit=crop&w=800&q=60" alt="Alumni portrait" class="video-thumbnail w-full h-96 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                        <div class="video-play-icon opacity-100 mb-4">
+                            <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer">
+                                <svg class="w-7 h-7 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                     <div class="absolute inset-0 flex flex-col justify-end p-6 pointer-events-none">
+                        <blockquote class="text-left">
+                            <p class="text-xl font-semibold text-white">"LeSuccess didn't just teach me to code, they taught me how to think like an engineer."</p>
+                            <cite class="mt-2 block text-slate-300 not-italic">- Anjali Singh, Data Analyst at Microsoft</cite>
+                        </blockquote>
+                    </div>
+                    </div>
+                </div>
+                 <div class="block relative rounded-xl overflow-hidden group hover-scale gsap-scale-in success-story-card">
+                    <div class="relative h-96 video-container" data-video-id="M7lc1UVf-VE">
+                        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=60" alt="Alumni portrait" class="video-thumbnail w-full h-96 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                        <div class="video-play-icon opacity-100 mb-4">
+                            <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm cursor-pointer">
+                                <svg class="w-7 h-7 text-[#0A192F]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <iframe class="video-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                     <div class="absolute inset-0 flex flex-col justify-end p-6 pointer-events-none">
+                        <blockquote class="text-left">
+                            <p class="text-xl font-semibold text-white">"The mentorship program connected me with industry leaders who guided me at every step."</p>
+                            <cite class="mt-2 block text-slate-300 not-italic">- Sameer Khan, Product Manager at Salesforce</cite>
+                        </blockquote>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[#0A192F]/95 backdrop-blur-md border-t border-[#64FFDA]/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Top Section - Navigation Links -->
+            <div class="py-16">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Column 1 - Company -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Company</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="index.html#about" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    About Us
+                                </a>
+                            </li>
+                            <li>
+                                <a href="blog.html" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Blog
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Careers
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 2 - Courses -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Courses</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    AI & Machine Learning
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Web Development
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Data Science
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 3 - Support -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#E6F1FF] mb-6">Support</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <a href="{{ url_for('contact') }}" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Contact Us
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{url_for('contact')}}#FAQ" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    FAQ
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300">
+                                    Privacy Policy
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Section - Copyright & Social Media -->
+            <div class="py-8 border-t border-[#64FFDA]/20">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <!-- Copyright -->
+                    <div class="text-[#CCD6F6] text-sm mb-4 md:mb-0">
+                        © 2025 Lesucess Academy. All Rights Reserved.
+                    </div>
+
+                    <!-- Social Media Icons -->
+                    <div class="flex space-x-6">
+                        <!-- LinkedIn -->
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="LinkedIn">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+
+                        <!-- Instagram -->
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="Instagram">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+
+                        <!-- YouTube -->
+                        <a href="#" class="text-[#CCD6F6] hover:text-[#64FFDA] transition-colors duration-300" aria-label="YouTube">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+   <!-- /* Word animation after footer */ -->
+   <style>
+      .animation-section {
+        padding: 4rem 0;
+        background:#0A192F;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+        line-height: 0;
+        user-select: none;
+        transition: line-height 1s;
+        min-height: 50vh;
+      }
+      .animation-section:active {
+        line-height: 2;
+      }
+      .letter {
+        font-size: 17vw;
+        font-weight: bold;
+        margin: 0 2px;
+        display: inline-block;
+        animation: rotate 3s ease-in-out infinite;
+        transition: line-height 1s, filter 0.5s;
+        transform-origin: center top;
+        mix-blend-mode: lighten;
+      }
+      .letter:hover {
+        filter: hue-rotate(270deg);
+      }
+      @keyframes rotate {
+        100% {
+          transform: rotateZ(360deg) rotateX(0deg);
+        }
+        50%,
+        75% {
+          transform: rotateZ(0deg) rotateX(360deg);
+        }
+      }
+    </style>
+    <section class="animation-section">
+      <div class="word-row">
+        <span class="letter" style="color: oklch(0.7 0.3 0deg); animation-delay: 0s;">L</span>
+        <span class="letter" style="color: oklch(0.7 0.3 40deg); animation-delay: 0.5s;">e</span>
+        <span class="letter" style="color: oklch(0.7 0.3 80deg); animation-delay: 1.0s;">S</span>
+        <span class="letter" style="color: oklch(0.7 0.3 120deg); animation-delay: 1.5s;">u</span>
+        <span class="letter" style="color: oklch(0.7 0.3 160deg); animation-delay: 2.0s;">c</span>
+        <span class="letter" style="color: oklch(0.7 0.3 200deg); animation-delay: 2.5s;">c</span>
+        <span class="letter" style="color: oklch(0.7 0.3 240deg); animation-delay: 3.0s;">e</span>
+        <span class="letter" style="color: oklch(0.7 0.3 280deg); animation-delay: 3.5s;">s</span>
+        <span class="letter" style="color: oklch(0.7 0.3 320deg); animation-delay: 4.0s;">s</span>
+      </div>
+    </section>
+
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute inset-0 opacity-5">
+            <div class="h-full w-full" style="background-image: radial-gradient(circle, #64FFDA 1px, transparent 1px); background-size: 50px 50px;"></div>
+        </div>
+        
+        <div class="absolute top-1/4 left-1/4 w-2 h-2 bg-[#64FFDA]/30 rounded-full animate-pulse"></div>
+        <div class="absolute top-3/4 right-1/4 w-1 h-1 bg-[#64FFDA]/40 rounded-full animate-pulse delay-1000"></div>
+        <div class="absolute top-1/2 right-1/3 w-1.5 h-1.5 bg-[#64FFDA]/25 rounded-full animate-pulse delay-500"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-1 h-1 bg-[#64FFDA]/35 rounded-full animate-pulse delay-1500"></div>
+    </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if GSAP is loaded
+            if (typeof gsap === 'undefined') {
+                console.error('GSAP not loaded, showing content without animations');
+                return;
+            }
+
+            // Register GSAP ScrollTrigger plugin
+            gsap.registerPlugin(ScrollTrigger);
+
+            // GSAP Animations
+            function initGSAPAnimations() {
+                // Prepare elements for animation
+                document.querySelectorAll('.gsap-fade-up, .gsap-fade-in, .gsap-scale-in, .gsap-slide-left, .gsap-slide-right').forEach(el => {
+                    el.classList.add('gsap-ready');
+                });
+
+                // Hero section animations
+                gsap.timeline()
+                    .to('#hero-title', { duration: 1, y: 0, opacity: 1, ease: 'power3.out' })
+                    .to('#hero-subtitle', { duration: 0.8, y: 0, opacity: 1, ease: 'power3.out' }, '-=0.5');
+
+                // Featured video card animation
+                gsap.to('#featured-video-card', {
+                    duration: 1,
+                    x: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#featured-video-card',
+                        start: 'top 80%',
+                        end: 'bottom 20%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                // Featured card text animation
+                gsap.to('#featured-card-text', {
+                    duration: 1,
+                    x: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#featured-card-text',
+                        start: 'top 80%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                // Blog section animations
+                gsap.to('#blog-title', {
+                    duration: 0.8,
+                    y: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#blog-title',
+                        start: 'top 85%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                gsap.to('#category-filters', {
+                    duration: 0.8,
+                    y: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#category-filters',
+                        start: 'top 85%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                // Staggered blog cards animation
+                gsap.to('.blog-card', {
+                    duration: 0.8,
+                    y: 0,
+                    opacity: 1,
+                    stagger: 0.2,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#blog-grid',
+                        start: 'top 80%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                // Success stories section animations
+                gsap.to('#success-stories-title', {
+                    duration: 0.8,
+                    y: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#success-stories-title',
+                        start: 'top 85%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                gsap.to('#success-stories-subtitle', {
+                    duration: 0.8,
+                    y: 0,
+                    opacity: 1,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#success-stories-subtitle',
+                        start: 'top 85%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                // Staggered success story cards animation
+                gsap.to('#success-stories-grid .gsap-scale-in', {
+                    duration: 0.8,
+                    scale: 1,
+                    opacity: 1,
+                    stagger: 0.3,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: '#success-stories-grid',
+                        start: 'top 80%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+            }
+
+            // Initialize GSAP animations
+            initGSAPAnimations();
+
+            // Blog category filtering functionality
+            const categoryButtons = document.querySelectorAll('.category-btn');
+            const blogCards = document.querySelectorAll('.blog-card');
+
+            function filterBlogPosts(selectedCategory) {
+                blogCards.forEach(card => {
+                    const cardCategory = card.getAttribute('data-category');
+                    if (selectedCategory === 'all' || cardCategory === selectedCategory) {
+                        card.style.display = 'block';
+                        // Animate cards in with GSAP
+                        gsap.fromTo(card, 
+                            { y: 30, opacity: 0 },
+                            { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' }
+                        );
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    categoryButtons.forEach(btn => {
+                        btn.classList.remove('active', 'bg-[#64FFDA]', 'text-[#0A192F]');
+                        btn.classList.add('bg-white/10', 'text-[#E6F1FF]');
+                    });
+                    this.classList.add('active', 'bg-[#64FFDA]', 'text-[#0A192F]');
+                    this.classList.remove('bg-white/10', 'text-[#E6F1FF]');
+                    const selectedCategory = this.getAttribute('data-category');
+                    filterBlogPosts(selectedCategory);
+                });
+            });
+
+            // Inline Video Player Functionality
+            function initInlineVideoPlayer() {
+                const videoContainers = document.querySelectorAll('.video-container');
+                
+                videoContainers.forEach((container, index) => {
+                    const videoId = container.getAttribute('data-video-id');
+                    const thumbnail = container.querySelector('.video-thumbnail');
+                    const playIcon = container.querySelector('.video-play-icon');
+                    const iframe = container.querySelector('.video-iframe');
+                    const playButton = container.closest('.group').querySelector('.video-play-trigger');
+                    
+                    if (videoId && thumbnail && playIcon && iframe) {
+                        let isVideoLoaded = false;
+                        
+                        const playVideo = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Only load video once
+                            if (!isVideoLoaded) {
+                                // Show iframe first
+                                iframe.style.display = 'block';
+                                
+                                // Set the iframe source with autoplay and enhanced parameters
+                                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&fs=1&cc_load_policy=1&iv_load_policy=3&start=0&enablejsapi=1&mute=0`;
+                                isVideoLoaded = true;
+                                
+                                // Smooth transition animations
+                                gsap.timeline()
+                                    .to(thumbnail, { duration: 0.4, opacity: 0, ease: 'power2.inOut' })
+                                    .to(playIcon, { duration: 0.3, opacity: 0, ease: 'power2.inOut' }, '-=0.2')
+                                    .to(iframe, { duration: 0.5, opacity: 1, ease: 'power2.out' }, '-=0.1');
+                                
+                                // Add playing class and hide elements
+                                iframe.classList.add('playing');
+                                thumbnail.classList.add('hidden');
+                                playIcon.style.display = 'none';
+                                
+                                // Hide the play button temporarily, then show it again
+                                if (playButton) {
+                                    gsap.to(playButton, { duration: 0.3, opacity: 0, y: 10 });
+                                    setTimeout(() => {
+                                        gsap.to(playButton, { duration: 0.3, opacity: 1, y: 0 });
+                                        playButton.textContent = 'Playing...';
+                                        playButton.style.background = '#10b981';
+                                    }, 1000);
+                                }
+                                
+                                // Add a subtle scale effect to the container
+                                gsap.to(container, { duration: 0.3, scale: 1.02, ease: 'power2.out' });
+                            } else {
+                                // If video is already loaded, just play it
+                                if (iframe.contentWindow) {
+                                    iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                                }
+                            }
+                        };
+                        
+                        // Add click listeners to both play icon and play button
+                        playIcon.addEventListener('click', playVideo);
+                        if (playButton) {
+                            playButton.addEventListener('click', playVideo);
+                        }
+                        
+                        // Add hover effects
+                        container.addEventListener('mouseenter', function() {
+                            if (!isVideoLoaded) {
+                                gsap.to(playIcon, { duration: 0.2, scale: 1.1, ease: 'power2.out' });
+                            }
+                        });
+                        
+                        container.addEventListener('mouseleave', function() {
+                            if (!isVideoLoaded) {
+                                gsap.to(playIcon, { duration: 0.2, scale: 1, ease: 'power2.out' });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Initialize inline video player
+            initInlineVideoPlayer();
+
+            // Initialize Success Stories videos specifically
+            function initSuccessStoriesVideos() {
+                const successStoryCards = document.querySelectorAll('.success-story-card .video-container');
+                
+                successStoryCards.forEach((container, index) => {
+                    const videoId = container.getAttribute('data-video-id');
+                    const thumbnail = container.querySelector('.video-thumbnail');
+                    const playIcon = container.querySelector('.video-play-icon');
+                    const iframe = container.querySelector('.video-iframe');
+                    
+                    if (videoId && thumbnail && playIcon && iframe) {
+                        let isVideoLoaded = false;
+                        
+                        const playVideo = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            if (!isVideoLoaded) {
+                                iframe.style.display = 'block';
+                                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&fs=1&cc_load_policy=1&iv_load_policy=3&start=0&enablejsapi=1&mute=0`;
+                                isVideoLoaded = true;
+                                
+                                gsap.timeline()
+                                    .to(thumbnail, { duration: 0.4, opacity: 0, ease: 'power2.inOut' })
+                                    .to(playIcon, { duration: 0.3, opacity: 0, ease: 'power2.inOut' }, '-=0.2')
+                                    .to(iframe, { duration: 0.5, opacity: 1, ease: 'power2.out' }, '-=0.1');
+                                
+                                iframe.classList.add('playing');
+                                thumbnail.classList.add('hidden');
+                                playIcon.style.display = 'none';
+                                
+                                gsap.to(container, { duration: 0.3, scale: 1.02, ease: 'power2.out' });
+                            }
+                        };
+                        
+                        playIcon.addEventListener('click', playVideo);
+                        
+                        container.addEventListener('mouseenter', function() {
+                            if (!isVideoLoaded) {
+                                gsap.to(playIcon, { duration: 0.2, scale: 1.1, ease: 'power2.out' });
+                            }
+                        });
+                        
+                        container.addEventListener('mouseleave', function() {
+                            if (!isVideoLoaded) {
+                                gsap.to(playIcon, { duration: 0.2, scale: 1, ease: 'power2.out' });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Initialize Success Stories videos
+            initSuccessStoriesVideos();
+
+            // Add YouTube API support for better video control
+            function loadYouTubeAPI() {
+                if (typeof YT === 'undefined') {
+                    const tag = document.createElement('script');
+                    tag.src = 'https://www.youtube.com/iframe_api';
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                }
+            }
+
+            // Load YouTube API
+            loadYouTubeAPI();
+
+            // Article Read More Functionality
+            function initArticleReader() {
+                const articleTriggers = document.querySelectorAll('.article-read-trigger');
+                
+                articleTriggers.forEach(trigger => {
+                    trigger.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Create modal for article reading
+                        const modal = document.createElement('div');
+                        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+                        modal.innerHTML = `
+                            <div class="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                                <div class="p-8">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <h2 class="text-3xl font-bold text-slate-100">The 2025 Resume Masterclass: Beating the ATS</h2>
+                                        <button class="text-slate-400 hover:text-slate-200 text-2xl close-modal">&times;</button>
+                                    </div>
+                                    <div class="prose prose-invert max-w-none">
+                                        <p class="text-slate-300 text-lg leading-relaxed mb-6">
+                                            In today's competitive job market, your resume needs to pass through Applicant Tracking Systems (ATS) before it ever reaches human eyes. This comprehensive guide will teach you how to optimize your resume for ATS success while maintaining its appeal to hiring managers.
+                                        </p>
+                                        
+                                        <h3 class="text-2xl font-bold text-slate-100 mb-4">Understanding ATS Systems</h3>
+                                        <p class="text-slate-300 mb-4">
+                                            ATS systems scan resumes for keywords, formatting, and specific criteria. They rank candidates based on how well their resumes match the job description. Understanding this process is crucial for getting your resume noticed.
+                                        </p>
+                                        
+                                        <h3 class="text-2xl font-bold text-slate-100 mb-4">Key Strategies for ATS Success</h3>
+                                        <ul class="text-slate-300 mb-6 space-y-2">
+                                            <li>• Use standard section headings (Experience, Education, Skills)</li>
+                                            <li>• Include relevant keywords from the job description</li>
+                                            <li>• Use simple, clean formatting</li>
+                                            <li>• Save as a .docx or .pdf file</li>
+                                            <li>• Avoid graphics, tables, and complex layouts</li>
+                                        </ul>
+                                        
+                                        <h3 class="text-2xl font-bold text-slate-100 mb-4">Resume Optimization Checklist</h3>
+                                        <div class="bg-slate-700/50 rounded-lg p-6 mb-6">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-300">
+                                                <div>
+                                                    <h4 class="font-semibold text-slate-100 mb-2">Formatting</h4>
+                                                    <ul class="space-y-1 text-sm">
+                                                        <li>✓ Standard fonts (Arial, Calibri, Times New Roman)</li>
+                                                        <li>✓ 10-12 point font size</li>
+                                                        <li>✓ Consistent formatting throughout</li>
+                                                        <li>✓ White space for readability</li>
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-semibold text-slate-100 mb-2">Content</h4>
+                                                    <ul class="space-y-1 text-sm">
+                                                        <li>✓ Quantified achievements</li>
+                                                        <li>✓ Action verbs</li>
+                                                        <li>✓ Relevant keywords</li>
+                                                        <li>✓ Contact information</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <h3 class="text-2xl font-bold text-slate-100 mb-4">Common ATS Mistakes to Avoid</h3>
+                                        <p class="text-slate-300 mb-4">
+                                            Many candidates unknowingly sabotage their chances with these common mistakes:
+                                        </p>
+                                        <ul class="text-slate-300 mb-6 space-y-2">
+                                            <li>• Using creative fonts or unusual formatting</li>
+                                            <li>• Including graphics, logos, or images</li>
+                                            <li>• Using tables for layout</li>
+                                            <li>• Saving as .jpg or .png files</li>
+                                            <li>• Using headers and footers</li>
+                                        </ul>
+                                        
+                                        <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-6">
+                                            <h4 class="text-xl font-bold text-cyan-300 mb-3">Pro Tip</h4>
+                                            <p class="text-slate-300">
+                                                Test your resume with free ATS checkers online before submitting. This will help you identify potential issues and optimize your resume for better ATS performance.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(modal);
+                        
+                        // Add close functionality
+                        const closeModal = modal.querySelector('.close-modal');
+                        closeModal.addEventListener('click', () => {
+                            document.body.removeChild(modal);
+                        });
+                        
+                        // Close on backdrop click
+                        modal.addEventListener('click', (e) => {
+                            if (e.target === modal) {
+                                document.body.removeChild(modal);
+                            }
+                        });
+                        
+                        // Animate modal appearance
+                        gsap.fromTo(modal, 
+                            { opacity: 0, scale: 0.9 },
+                            { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out' }
+                        );
+                    });
+                });
+            }
+
+            // Initialize article reader
+            initArticleReader();
+
+            // --- 3D BACKGROUND LOGIC (UNCHANGED) ---
+            const canvas = document.getElementById('global-3d-canvas');
+            if (!canvas) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const clock = new THREE.Clock();
+
+            
+            
+            camera.position.z = 5;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+                renderer.render(scene, camera);
+            }
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        });
+    </script>
+</body>
+</html>
